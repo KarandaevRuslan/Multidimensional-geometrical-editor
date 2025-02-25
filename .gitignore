@@ -1,12 +1,37 @@
-CMakeLists.txt.user
+# Ignore CMake build directories
+/CMakeLists.txt.user
+/CMakeLists.txt.cache
+/CMakeLists.txt.in
+/CMakeLists.txt.user
+
+# Ignore Visual Studio build files and directories
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Ignore Visual Studio config files
+.vsconfig/
+
+# Ignore CMake-specific files
+CMakeFiles/
 CMakeCache.txt
-CMakeFiles
-CMakeScripts
-Testing
-Makefile
-cmake_install.cmake
-install_manifest.txt
-compile_commands.json
-CTestTestfile.cmake
-_deps
-CMakeUserPresets.json
+*.cmake
+
+# Ignore compiled files
+*.obj
+*.pdb
+*.idb
+*.ipch
+*.iobj
+*.pdb
+*.dll
+*.exe
+*.lib
+*.so
+*.dylib
+*.a
+*.app
