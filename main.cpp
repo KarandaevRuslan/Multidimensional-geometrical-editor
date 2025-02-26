@@ -1,21 +1,20 @@
-// Copyright (C) 2016 The Qt Company Ltd.
-// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR BSD-3-Clause
-
 #include <QApplication>
 #include <QSurfaceFormat>
 #include <QScreen>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
+#include "configmanager.h"
 #include "glwidget.h"
+#include "logger.h"
 #include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    QCoreApplication::setApplicationName("Qt Hello GL 2 Example");
-    QCoreApplication::setOrganizationName("QtProject");
+    QCoreApplication::setApplicationName("Multidimensional Geometrical Editor");
+    QCoreApplication::setOrganizationName("Ruslan Karandaev");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::applicationName());
@@ -39,6 +38,18 @@ int main(int argc, char *argv[])
         fmt.setProfile(QSurfaceFormat::CoreProfile);
     }
     QSurfaceFormat::setDefaultFormat(fmt);
+
+    if (!Logger::instance().openLogFile("application.log")) {
+        fprintf(stderr, "Could not open log file.\n");
+    }
+    qInstallMessageHandler(customMessageHandler);
+
+    ConfigManager &configManager = ConfigManager::instance();
+    if (!configManager.loadConfig("config.json")) {
+        qWarning() << "Failed to load configuration. Using defaults.";
+    }
+    configManager.setValue("version","0.1");
+    configManager.saveConfig("config.json");
 
     MainWindow mainWindow;
 

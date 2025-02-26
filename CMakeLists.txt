@@ -20,6 +20,8 @@ set(PROJECT_SOURCES
     main.cpp
     mainwindow.cpp mainwindow.h
     window.cpp window.h
+    logger.h logger.cpp
+    configmanager.h configmanager.cpp
     ${TS_FILES}
 )
 
