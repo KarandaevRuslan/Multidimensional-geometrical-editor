@@ -4,10 +4,10 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
-#include "configmanager.h"
-#include "glwidget.h"
-#include "logger.h"
-#include "mainwindow.h"
+#include "tools/configManager.h"
+#include "tools/logger.h"
+#include "view/mainWindow.h"
+
 
 int main(int argc, char *argv[])
 {
@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     }
     QSurfaceFormat::setDefaultFormat(fmt);
 
+    // Logger
     if (!Logger::instance().openLogFile("application.log")) {
         fprintf(stderr, "Could not open log file.\n");
     }
@@ -48,16 +49,9 @@ int main(int argc, char *argv[])
     if (!configManager.loadConfig("config.json")) {
         qWarning() << "Failed to load configuration. Using defaults.";
     }
-    configManager.setValue("version","0.1");
-    configManager.saveConfig("config.json");
 
     MainWindow mainWindow;
 
-    GLWidget::setTransparent(parser.isSet(transparentOption));
-    if (GLWidget::isTransparent()) {
-        mainWindow.setAttribute(Qt::WA_TranslucentBackground);
-        mainWindow.setAttribute(Qt::WA_NoSystemBackground, false);
-    }
     mainWindow.resize(mainWindow.sizeHint());
     int desktopArea = QGuiApplication::primaryScreen()->size().width() *
                       QGuiApplication::primaryScreen()->size().height();

@@ -1,13 +1,10 @@
-#include "configmanager.h"
+#include "configManager.h"
 #include <QFile>
 #include <QJsonDocument>
 #include <QDebug>
 #include <QMutexLocker>
 
-/**
- * @brief Returns the singleton instance of ConfigManager. *
- * @return ConfigManager& Reference to the singleton instance.
- */
+
 ConfigManager& ConfigManager::instance()
 {
     static ConfigManager instance;
