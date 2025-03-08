@@ -21,11 +21,11 @@ Difficulty: Medium
 
 ### Sprint 2. Basic Classes for n-Dimensional Figures
 * Task 2.1: Implement the base class NDShape  
-Write the NDShape class representing an n-dimensional figure. The class should include properties for storing vertex coordinates and figure parameters, as well as methods for initialization and basic computations.  
+Write the NDShape class representing an n-dimensional figure. The class should include properties for storing vertex coordinates and figure parameters, as well as methods for initialization.  
 Difficulty: Medium
 
 * Task 2.2: Methods for handling vertices and edges  
-Implement functions within the NDShape class for adding, deleting, and modifying vertex coordinates, as well as calculating edges/connections between them.  
+Implement functions within the NDShape class for adding, deleting, and modifying vertex coordinates, and the same for edges.  
 Difficulty: Medium
 
 * Task 2.3: Write unit tests for NDShape  
