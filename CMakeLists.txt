@@ -30,6 +30,7 @@ set(PROJECT_SOURCES
     main.cpp
     model/NDShape.cpp model/NDShape.h
     model/projection.h model/projection.cpp
+    model/rotator.h model/rotator.cpp
     ${TS_FILES}
     ${RESOURCES}
     ${UI_FILES}
