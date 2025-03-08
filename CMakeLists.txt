@@ -29,6 +29,7 @@ set(PROJECT_SOURCES
     view/mainWindow.cpp view/mainWindow.h
     main.cpp
     model/NDShape.cpp model/NDShape.h
+    model/projection.h model/projection.cpp
     ${TS_FILES}
     ${RESOURCES}
     ${UI_FILES}
@@ -38,8 +39,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(MultidimensionalGeometricEditor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        model/projection.h model/projection.cpp
-
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
@@ -84,3 +83,42 @@ install(TARGETS MultidimensionalGeometricEditor
 if(QT_VERSION_MAJOR EQUAL 6)
     qt_finalize_executable(MultidimensionalGeometricEditor)
 endif()
+
+###############
+#    Tests    #
+###############
+
+include(FetchContent)
+
+FetchContent_Declare(
+    gtest
+    GIT_REPOSITORY "https://github.com/google/googletest"
+    GIT_TAG        main
+)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(gtest)
+
+set(TESTS
+    tests/NDShape.cc
+)
+
+set(TESTING_FILES
+    model/NDShape.h
+    model/NDShape.cpp
+)
+
+enable_testing()
+
+add_executable(
+  Test
+  ${TESTS}
+  ${TESTING_FILES}
+)
+target_link_libraries(Test PRIVATE
+  GTest::gtest_main
+  Qt${QT_VERSION_MAJOR}::Widgets
+)
+
+include(GoogleTest)
+gtest_discover_tests(Test)

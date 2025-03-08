@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
 
     parser.process(app);
 
+    // Adjusting opengl
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
     if (parser.isSet(multipleSampleOption))
@@ -45,11 +46,13 @@ int main(int argc, char *argv[])
     }
     qInstallMessageHandler(customMessageHandler);
 
+    // Config
     ConfigManager &configManager = ConfigManager::instance();
     if (!configManager.loadConfig("config.json")) {
         qWarning() << "Failed to load configuration. Using defaults.";
     }
 
+    // Launching main window
     MainWindow mainWindow;
 
     mainWindow.resize(mainWindow.sizeHint());

@@ -40,12 +40,14 @@ public:
     /**
      * @brief Adds an edge connecting two existing vertices by their IDs.
      *
-     * Checks that both vertices exist and ensures the edge does not already exist.
+     * Checks that both vertices exist, ensures the edge does not already exist
+     * and vertices are different.
      *
      * @param id1 The ID of the first vertex.
      * @param id2 The ID of the second vertex.
      * @throws std::out_of_range If either vertex ID does not exist.
-     * @throws std::invalid_argument If the edge already exists.
+     * @throws std::invalid_argument If the edge already exists,
+     * or if vertices the same.
      */
     void addEdge(std::size_t id1, std::size_t id2);
 
@@ -134,7 +136,7 @@ public:
      * @brief Updates the NDShape's edges based on the provided adjacency matrix data.
      *
      * The provided matrix is expected to be an n x n matrix (where n is the number of vertices),
-     * with the main diagonal cells set to -1 and all off-diagonal cells containing 0 or 1.
+     * with all off-main-diagonal cells containing 0 or 1.
      * For each off-diagonal cell, if the matrix indicates 1 (and no edge exists), the edge is added;
      * if it indicates 0 (and an edge exists), the edge is removed.
      *

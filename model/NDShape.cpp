@@ -35,6 +35,12 @@ void NDShape::addEdge(std::size_t id1, std::size_t id2) {
         throw std::out_of_range(msg.toStdString());
     }
 
+    if (id1 == id2) {
+        QString msg = "Edges with the same vertices are forbidden.";
+        qWarning() << msg;
+        throw std::invalid_argument(msg.toStdString());
+    }
+
     auto it = std::find_if(edges_.begin(), edges_.end(),
                            [id1, id2](const std::pair<std::size_t, std::size_t>& edge) {
                                return (edge.first == id1 && edge.second == id2) ||
