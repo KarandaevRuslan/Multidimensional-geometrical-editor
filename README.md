@@ -41,7 +41,7 @@ Difficulty: Hard
 Code the functionality to rotate the figure in ,ultidimensional space to change the orientation of the figure in space.  
 Difficulty: Hard
 
-* Task 3.3: Integrate 3D projection visualization  
+* Task 3.3: Implement the Scene module
 Develop a module for composing several objects with specified rotation and perspective on one scene.  
 Difficulty: Medium
 
