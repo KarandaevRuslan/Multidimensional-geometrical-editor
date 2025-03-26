@@ -34,15 +34,15 @@ Difficulty: Low
 
 ### Sprint 3. Projecting n-Dimensional Figures into 3D Space
 * Task 3.1: Develop the 3D projection function  
-Write a function project_to_3d(ndShape) to compute the 3D projection of an n-dimensional figure using linear transformations and matrices.  
+Write a function to compute the 3D projection of an n-dimensional figure.  
 Difficulty: Hard
 
-* Task 3.2: Implement the 3D projection rotation algorithm  
-Code the functionality to rotate the 3D projection to change the orientation of the figure in space.  
+* Task 3.2: Implement the rotation algorithm  
+Code the functionality to rotate the figure in ,ultidimensional space to change the orientation of the figure in space.  
 Difficulty: Hard
 
 * Task 3.3: Integrate 3D projection visualization  
-Develop a module to render the computed 3D projection within the application window.  
+Develop a module for composing several objects with specified rotation and perspective on one scene.  
 Difficulty: Medium
 
 ### Sprint 4. Figure Editing Functionality
@@ -54,9 +54,9 @@ Difficulty: Medium
 Implement functions that update the internal representation of the figure in real time as parameters are modified via the editing interface.  
 Difficulty: Medium
 
-* Task 4.3: Error handling during editing  
-Write code to validate input data and handle errors to ensure the stability of the editing module.  
-Difficulty: Low
+* Task 4.3: Integrate 3D projection visualization  
+Develop a module to render the computed 3D projection within the application window.  
+Difficulty: Medium
 
 ### Sprint 5. Generating Random n-Dimensional Figures
 * Task 5.1: Develop the random figure generation function  
