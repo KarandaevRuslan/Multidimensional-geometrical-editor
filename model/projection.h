@@ -3,7 +3,6 @@
 
 #include "NDShape.h"
 #include <vector>
-#include <stdexcept>
 
 /**
  * @brief Base interface for projecting an n-dimensional point to (n-1) dimensions

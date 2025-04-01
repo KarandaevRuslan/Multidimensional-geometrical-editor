@@ -4,7 +4,6 @@
 #include <vector>
 #include <map>
 #include <utility>
-#include <stdexcept>
 #include <cstddef>
 
 /**
@@ -12,6 +11,8 @@
  */
 class NDShape {
 public:
+    NDShape() = default;
+    ~NDShape() = default;
     /**
      * @brief Constructs an NDShape with the specified dimension.
      * @param dimension The dimension of the figure (e.g., 2 for 2D, 3 for 3D).

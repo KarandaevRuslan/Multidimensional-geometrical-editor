@@ -5,23 +5,41 @@
 #include "NDShape.h"
 
 /**
- * @brief Rotator is a utility class that provides non-mutating rotation of NDShape objects
- *        in planes determined by any pair of coordinate axes.
+ * @brief The Rotator class encapsulates a rotation transformation.
+ *
+ * This class stores a rotation angle (in radians) and two coordinate axes that define the plane of rotation.
+ * It provides a member function to apply the stored rotation to an NDShape object.
  */
 class Rotator {
 public:
     /**
-     * @brief Rotates the given NDShape in the specified plane by a given angle, returning a new shape.
+     * @brief Constructs a Rotator with the specified axes and rotation angle.
      *
-     * @param shape The original NDShape to be rotated.
-     * @param axis1 Index of one axis of the rotation plane.
-     * @param axis2 Index of the other axis of the rotation plane.
-     * @param angle The rotation angle in radians.
-     * @return A new NDShape instance reflecting the rotation in the specified plane.
-     *
-     * @throws std::invalid_argument If axis1 or axis2 are out of range, or if axis1 == axis2.
+     * @param axis1 Index of the first axis defining the rotation plane.
+     * @param axis2 Index of the second axis defining the rotation plane.
+     * @param angle Rotation angle in radians.
      */
-    NDShape rotateInPlane(const NDShape& shape, std::size_t axis1, std::size_t axis2, double angle);
+    Rotator(std::size_t axis1, std::size_t axis2, double angle);
+
+    /**
+     * @brief Destructor for the Rotator class.
+     */
+    ~Rotator() = default;
+
+    /**
+     * @brief Applies the stored rotation transformation to the provided NDShape.
+     *
+     * @param shape The NDShape to be rotated.
+     * @return A new NDShape instance reflecting the applied rotation.
+     *
+     * @throws std::invalid_argument If either axis index is out of range or if both axes are identical.
+     */
+    NDShape applyRotation(const NDShape& shape) const;
+
+private:
+    std::size_t axis1_;
+    std::size_t axis2_;
+    double angle_;
 };
 
 #endif // ROTATOR_H

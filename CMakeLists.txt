@@ -31,6 +31,13 @@ set(PROJECT_SOURCES
     model/NDShape.cpp model/NDShape.h
     model/projection.h model/projection.cpp
     model/rotator.h model/rotator.cpp
+    model/scene.h model/scene.cpp
+    model/sceneColorificator.h model/sceneColorificator.cpp
+    view/sceneRenderer.h view/sceneRenderer.cpp
+    presenterMain.h presenterMain.cpp
+    model/opengl/graphics/sceneGeometryManager.cpp model/opengl/graphics/sceneGeometryManager.h
+    model/opengl/input/sceneInputHandler.cpp model/opengl/input/sceneInputHandler.h
+    model/opengl/objectController/cameraController.cpp model/opengl/objectController/cameraController.h
     ${TS_FILES}
     ${RESOURCES}
     ${UI_FILES}
