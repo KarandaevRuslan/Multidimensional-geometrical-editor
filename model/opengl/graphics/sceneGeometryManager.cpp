@@ -25,7 +25,6 @@ SceneGeometryManager::SceneGeometryManager()
 
 SceneGeometryManager::~SceneGeometryManager()
 {
-    // Clean up OpenGL buffers. A current context must be active.
     glDeleteBuffers(1, &vboAxes_);
     glDeleteVertexArrays(1, &vaoAxes_);
 
@@ -58,7 +57,6 @@ void SceneGeometryManager::initialize()
     glGenVertexArrays(1, &vaoLines_);
     glGenBuffers(1, &vboLines_);
 
-    // Generate buffers for arrow cone geometry
     glGenVertexArrays(1, &vaoArrowCone_);
     glGenBuffers(1, &vboArrowCone_);
 }
@@ -81,57 +79,60 @@ void SceneGeometryManager::updateGeometry()
     updateLinesData();
 }
 
-void SceneGeometryManager::renderAll()
+// In SceneGeometryManager::renderAll(QOpenGLShaderProgram* program)
+
+void SceneGeometryManager::renderAll(QOpenGLShaderProgram* program)
 {
-    // We do NOT set the MVP uniform here anymore.
-    // We assume the current shader program is already bound
-    // and the MVP has been set by the caller (SceneRenderer).
-
-    // Render axis lines
-    if (axesVertexCount_ > 0) {
-        glLineWidth(kLineWidthThin);
-        glBindVertexArray(vaoAxes_);
-        glDrawArrays(GL_LINES, 0, axesVertexCount_);
-        glBindVertexArray(0);
-    }
-
-    // Render arrow cones
-    if (arrowConeVertexCount_ > 0) {
-        glBindVertexArray(vaoArrowCone_);
-        glDrawArrays(GL_TRIANGLES, 0, arrowConeVertexCount_);
-        glBindVertexArray(0);
-    }
-
-    // Render ticks
+    // TICKS: no lighting
     if (ticksVertexCount_ > 0) {
+        program->setUniformValue("uApplyLighting", false); // <--
         glLineWidth(kLineWidthThin);
         glBindVertexArray(vaoTicks_);
         glDrawArrays(GL_LINES, 0, ticksVertexCount_);
         glBindVertexArray(0);
     }
 
-    // Render points
-    if (pointsVertexCount_ > 0) {
-        glPointSize(kPointSize);
-        glBindVertexArray(vaoPoints_);
-        glDrawArrays(GL_POINTS, 0, pointsVertexCount_);
+    // SCENE LINES: apply lighting
+    if (linesVertexCount_ > 0) {
+        program->setUniformValue("uApplyLighting", true);
+        glBindVertexArray(vaoLines_);
+        glDrawArrays(GL_TRIANGLES, 0, linesVertexCount_);
         glBindVertexArray(0);
     }
 
-    // Render scene lines
-    if (linesVertexCount_ > 0) {
-        glLineWidth(kLineWidthThick);
-        glBindVertexArray(vaoLines_);
-        glDrawArrays(GL_LINES, 0, linesVertexCount_);
+    // POINTS: apply lighting
+    if (pointsVertexCount_ > 0) {
+        program->setUniformValue("uApplyLighting", true);
+        glBindVertexArray(vaoPoints_);
+        glDrawArrays(GL_TRIANGLES, 0, pointsVertexCount_);
+        glBindVertexArray(0);
+    }
+
+    // AXES: no lighting
+    if (axesVertexCount_ > 0) {
+        program->setUniformValue("uApplyLighting", false); // <--
+        glLineWidth(kLineWidthThin);
+        glBindVertexArray(vaoAxes_);
+        glDrawArrays(GL_LINES, 0, axesVertexCount_);
+        glBindVertexArray(0);
+    }
+
+    // ARROW CONES: use lighting (triangles)
+    if (arrowConeVertexCount_ > 0) {
+        program->setUniformValue("uApplyLighting", true); // <--
+        glBindVertexArray(vaoArrowCone_);
+        glDrawArrays(GL_TRIANGLES, 0, arrowConeVertexCount_);
         glBindVertexArray(0);
     }
 }
 
 void SceneGeometryManager::updateAxesData()
 {
+    // Lines for axes
     std::vector<VertexData> axisLines;
     axisLines.reserve(6); // 3 axes * 2 endpoints
 
+    // Triangles for arrow cones
     std::vector<VertexData> arrowConeVertices;
     arrowConeVertices.reserve(6 * kConeSegments * 3);
 
@@ -139,52 +140,38 @@ void SceneGeometryManager::updateAxesData()
     const QVector3D green(0, 1, 0);
     const QVector3D blue(0, 0, 1);
 
-    auto addAxis = [&](const QVector3D &dir, const QVector3D &color) {
+    auto addAxis = [&](const QVector3D &dir, const QVector3D &color)
+    {
+        // Negative endpoint
         QVector3D negPoint  = -dir * kAxisEnd;
+        // The base of the arrow (where the cone starts)
         QVector3D arrowBase =  dir * (kAxisEnd - kArrowSize);
 
-        // Axis line
-        axisLines.push_back({ negPoint,  color });
-        axisLines.push_back({ arrowBase, color });
+        // Draw a simple line for the axis
+        axisLines.push_back({ negPoint, QVector3D(0,0,0), color });
+        axisLines.push_back({ arrowBase, QVector3D(0,0,0), color });
 
-        // Tip of the cone
+        // Build a cone:
+        //   tip = dir * kAxisEnd
+        //   baseCenter = arrowBase
+        //   baseRadius = kConeRadius
+        //   segments = kConeSegments
+        //   color = same axis color
         QVector3D tip        = dir * kAxisEnd;
-        // Center of the cone's circular base
         QVector3D baseCenter = arrowBase;
 
-        // Build cone by generating circle around baseCenter
-        QVector3D upCandidate = qFuzzyCompare(dir.y(), 1.f) ?
-                                    QVector3D(1, 0, 0) : QVector3D(0, 1, 0);
+        auto cone = buildConeWithBase(
+            tip,
+            baseCenter,
+            kConeRadius,
+            kConeSegments,
+            color);
 
-        QVector3D perp      = QVector3D::crossProduct(dir, upCandidate).normalized();
-        QVector3D bitangent = QVector3D::crossProduct(dir, perp).normalized();
-
-        std::vector<QVector3D> baseCircle;
-        baseCircle.reserve(kConeSegments);
-
-        for (int i = 0; i < kConeSegments; ++i) {
-            float theta1 = (2.0f * float(M_PI) * i) / float(kConeSegments);
-            float theta2 = (2.0f * float(M_PI) * (i + 1)) / float(kConeSegments);
-
-            // Two consecutive vertices
-            QVector3D baseVertex1 = baseCenter + (std::cos(theta1) * perp + std::sin(theta1) * bitangent) * kConeRadius;
-            QVector3D baseVertex2 = baseCenter + (std::cos(theta2) * perp + std::sin(theta2) * bitangent) * kConeRadius;
-
-            // Lateral surface
-            arrowConeVertices.push_back({ tip,         color });
-            arrowConeVertices.push_back({ baseVertex1, color });
-            arrowConeVertices.push_back({ baseVertex2, color });
-
-            baseCircle.push_back(baseVertex1);
-        }
-
-        // Base cap
-        for (int i = 0; i < kConeSegments; ++i) {
-            int next = (i + 1) % kConeSegments;
-            arrowConeVertices.push_back({ baseCenter,       color });
-            arrowConeVertices.push_back({ baseCircle[i],    color });
-            arrowConeVertices.push_back({ baseCircle[next], color });
-        }
+        // Append to arrowConeVertices
+        arrowConeVertices.insert(
+            arrowConeVertices.end(),
+            cone.begin(),
+            cone.end());
     };
 
     // X, Y, Z axes
@@ -192,17 +179,19 @@ void SceneGeometryManager::updateAxesData()
     addAxis(QVector3D(0, 1, 0), green);
     addAxis(QVector3D(0, 0, 1), blue);
 
-    // Update buffers
+    // Upload axis lines to GPU
     createOrUpdateBuffer(vaoAxes_, vboAxes_,
                          axisLines.data(),
                          axisLines.size() * sizeof(VertexData),
                          axesVertexCount_);
 
+    // Upload arrow cones (triangles) to GPU
     createOrUpdateBuffer(vaoArrowCone_, vboArrowCone_,
                          arrowConeVertices.data(),
                          arrowConeVertices.size() * sizeof(VertexData),
                          arrowConeVertexCount_);
 }
+
 
 void SceneGeometryManager::updateTicksData()
 {
@@ -213,14 +202,14 @@ void SceneGeometryManager::updateTicksData()
     for (int i = -kTickRange; i <= kTickRange; ++i) {
         if (i == 0) continue;
         // X
-        ticks.push_back({ QVector3D(float(i),  kTickOffset, 0), white });
-        ticks.push_back({ QVector3D(float(i), -kTickOffset, 0), white });
+        ticks.push_back({ QVector3D(float(i),  kTickOffset, 0), QVector3D(0,0,0), white });
+        ticks.push_back({ QVector3D(float(i), -kTickOffset, 0), QVector3D(0,0,0), white });
         // Y
-        ticks.push_back({ QVector3D( kTickOffset, float(i), 0), white });
-        ticks.push_back({ QVector3D(-kTickOffset, float(i), 0), white });
+        ticks.push_back({ QVector3D(kTickOffset, float(i), 0), QVector3D(0,0,0), white });
+        ticks.push_back({ QVector3D(-kTickOffset, float(i),0), QVector3D(0,0,0), white });
         // Z
-        ticks.push_back({ QVector3D(0,  kTickOffset, float(i)), white });
-        ticks.push_back({ QVector3D(0, -kTickOffset, float(i)), white });
+        ticks.push_back({ QVector3D(0, kTickOffset, float(i)), QVector3D(0,0,0), white });
+        ticks.push_back({ QVector3D(0,-kTickOffset, float(i)), QVector3D(0,0,0), white });
     }
 
     createOrUpdateBuffer(vaoTicks_, vboTicks_,
@@ -240,25 +229,35 @@ void SceneGeometryManager::updatePointsData()
 
     auto vBegin = colorPtr->beginVertices(*scenePtr);
     auto vEnd   = colorPtr->endVertices(*scenePtr);
-    std::vector<VertexData> points;
-    points.reserve(std::distance(vBegin, vEnd));
+    std::vector<VertexData> sphereTriangles;  // big container
+
+    // pick sphere detail
+    const int rings   = 15;
+    const int sectors = 15;
+    const float sphereRadius = 0.15f;
 
     for (auto it = vBegin; it != vEnd; ++it) {
         auto cv = *it;
-        QVector3D pos(0, 0, 0);
+        QVector3D pos(0,0,0);
         if (!cv.coords.empty())   pos.setX(cv.coords[0]);
         if (cv.coords.size() > 1) pos.setY(cv.coords[1]);
         if (cv.coords.size() > 2) pos.setZ(cv.coords[2]);
 
         QVector3D col(cv.color.redF(), cv.color.greenF(), cv.color.blueF());
-        points.push_back({ pos, col });
+
+        // build a small sphere at this point
+        auto sphereVerts = buildSphere(sphereRadius, rings, sectors, pos, col);
+        // append them into the big container
+        sphereTriangles.insert(sphereTriangles.end(), sphereVerts.begin(), sphereVerts.end());
     }
 
+    // Now upload to the GPU as triangles
     createOrUpdateBuffer(vaoPoints_, vboPoints_,
-                         points.data(),
-                         points.size() * sizeof(VertexData),
+                         sphereTriangles.data(),
+                         sphereTriangles.size() * sizeof(VertexData),
                          pointsVertexCount_);
 }
+
 
 void SceneGeometryManager::updateLinesData()
 {
@@ -271,19 +270,21 @@ void SceneGeometryManager::updateLinesData()
 
     auto eBegin = colorPtr->beginEdges(*scenePtr);
     auto eEnd   = colorPtr->endEdges(*scenePtr);
-    std::vector<VertexData> lines;
-    lines.reserve(std::distance(eBegin, eEnd) * 2);
+
+    std::vector<VertexData> allCylinders;
+    // tube radius for lines
+    float tubeRadius = 0.055f;
+    int tubeSegments = 18;
 
     for (auto it = eBegin; it != eEnd; ++it) {
         auto cl = *it;
-        QVector3D start(0, 0, 0), end(0, 0, 0);
+        QVector3D start(0,0,0), end(0,0,0);
 
         if (!cl.start.empty()) {
             start.setX(cl.start[0]);
             if (cl.start.size() > 1) start.setY(cl.start[1]);
             if (cl.start.size() > 2) start.setZ(cl.start[2]);
         }
-
         if (!cl.end.empty()) {
             end.setX(cl.end[0]);
             if (cl.end.size() > 1) end.setY(cl.end[1]);
@@ -291,15 +292,21 @@ void SceneGeometryManager::updateLinesData()
         }
 
         QVector3D col(cl.color.redF(), cl.color.greenF(), cl.color.blueF());
-        lines.push_back({ start, col });
-        lines.push_back({ end,   col });
+
+        // build a cylinder from start to end
+        auto cylinderVerts = buildCylinderWithCaps(start, end, tubeRadius, tubeSegments, col);
+        allCylinders.insert(allCylinders.end(), cylinderVerts.begin(), cylinderVerts.end());
     }
 
     createOrUpdateBuffer(vaoLines_, vboLines_,
-                         lines.data(),
-                         lines.size() * sizeof(VertexData),
+                         allCylinders.data(),
+                         allCylinders.size() * sizeof(VertexData),
                          linesVertexCount_);
 }
+
+//
+// ----------------- createOrUpdateBuffer --------------------
+//
 
 void SceneGeometryManager::createOrUpdateBuffer(GLuint &vao, GLuint &vbo,
                                                 const VertexData *data,
@@ -312,19 +319,26 @@ void SceneGeometryManager::createOrUpdateBuffer(GLuint &vao, GLuint &vbo,
     }
 
     vertexCount = static_cast<GLsizei>(dataSize / sizeof(VertexData));
+
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, dataSize, data, GL_STATIC_DRAW);
 
-    // Position attribute at location = 0
+    // Position => location 0
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
                           sizeof(VertexData),
                           reinterpret_cast<void*>(offsetof(VertexData, position)));
 
-    // Color attribute at location = 1
+    // Normal => location 1
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                          sizeof(VertexData),
+                          reinterpret_cast<void*>(offsetof(VertexData, normal)));
+
+    // Color => location 2
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
                           sizeof(VertexData),
                           reinterpret_cast<void*>(offsetof(VertexData, color)));
 

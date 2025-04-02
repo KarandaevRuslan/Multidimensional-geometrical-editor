@@ -26,21 +26,16 @@ SceneRenderer::SceneRenderer(QWidget* parent)
     connect(&movementTimer_, &QTimer::timeout, this, &SceneRenderer::updateCamera);
     movementTimer_.start();
 
-    // Toggle cursor for free-look
     connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled,
             this, [this](bool enabled) {
-                if (enabled) {
-                    setCursor(Qt::BlankCursor);
-                } else {
-                    setCursor(Qt::ArrowCursor);
-                }
+                setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
             });
 }
 
 SceneRenderer::~SceneRenderer()
 {
     makeCurrent();
-    program_.reset(); // releases shader program
+    program_.reset();
     doneCurrent();
 }
 
@@ -61,51 +56,80 @@ void SceneRenderer::initializeGL()
     initializeOpenGLFunctions();
 
     glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
+    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+
     glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA);
 
-    // Create + link a basic shader program with position & color
+    // Create + link a shader program
     program_ = std::make_unique<QOpenGLShaderProgram>();
     program_->addShaderFromSourceFile(QOpenGLShader::Vertex,   ":/shaders/vertex_shader.glsl");
     program_->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/fragment_shader.glsl");
     program_->link();
 
-    // Cache uniform location(s)
-    mvpMatrixLoc_ = program_->uniformLocation("uMvpMatrix");
+    // Cache uniform locations
+    mvpMatrixLoc_        = program_->uniformLocation("uMvpMatrix");
+    // Additional lighting uniforms (you can store them in class members if you like)
+    // e.g.: lightDirLoc_ = program_->uniformLocation("uLightDirection");
+    //       etc.
 
-    // Initialize geometry VBO/VAO resources
     geometryManager_->initialize();
 }
 
 void SceneRenderer::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
-    centerScreenPos_ = mapToGlobal(QPoint(width() / 2, height() / 2));
+    centerScreenPos_ = mapToGlobal(QPoint(width()/2, height()/2));
     inputHandler_->setWidgetCenter(centerScreenPos_);
 }
 
 void SceneRenderer::paintGL()
 {
-    // Clear buffers
+    glEnable(GL_DEPTH_TEST);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // 1) Update geometry (retrieve from scene if changed)
+
+    // 1) Update geometry buffers from scene
     geometryManager_->updateGeometry();
 
-    // 2) Build MVP from camera
+    // 2) Build MVP
     QMatrix4x4 mvp = buildMvpMatrix();
 
-    // 3) Bind our simple shader
+    paintOverlayLabels(mvp);
+
+    glEnable(GL_DEPTH_TEST);
+
+    // 3) Bind the shader program
     program_->bind();
+
+    // 4) Set the necessary uniforms:
     program_->setUniformValue(mvpMatrixLoc_, mvp);
 
-    // 4) Draw the geometry
-    geometryManager_->renderAll(); // <— No matrix call here
+    QMatrix4x4 model;
+    model.setToIdentity();
+    program_->setUniformValue("uModelMatrix", model);
+
+    // Pass the camera forward vector; the shader will use its negative for lighting.
+    program_->setUniformValue("uCameraForward", cameraController_->forwardVector());
+
+    // Set the camera position for specular lighting calculations.
+    program_->setUniformValue("uViewPos", cameraController_->position());
+
+    // Set other lighting uniforms.
+    program_->setUniformValue("uLightColor",      QVector3D(1.0f, 1.0f, 1.0f));
+    program_->setUniformValue("uAmbientColor",    QVector3D(1.0f, 1.0f, 1.0f));
+    program_->setUniformValue("uAmbientStrength", 0.2f);
+    program_->setUniformValue("uDirectionalStrength", 1.0f);
+    program_->setUniformValue("uSpecularStrength", 0.5f);
+    program_->setUniformValue("uShininess", 32.0f);
+
+    // 5) Render all geometry
+    geometryManager_->renderAll(program_.get());
 
     program_->release();
-
-    // 5) Overlay labels
-    paintOverlayLabels(mvp);
 }
 
 void SceneRenderer::keyPressEvent(QKeyEvent* event)
@@ -141,26 +165,24 @@ void SceneRenderer::wheelEvent(QWheelEvent* event)
 void SceneRenderer::updateCamera()
 {
     inputHandler_->updateCamera(*cameraController_);
-    update(); // triggers paintGL()
+    update();
 }
 
 QMatrix4x4 SceneRenderer::buildMvpMatrix() const
 {
     QMatrix4x4 projection;
-    projection.perspective(kDefaultFovY,
-                           float(width()) / float(height()),
-                           kDefaultNearPlane,
-                           kDefaultFarPlane);
+    projection.perspective(kDefaultFovY, float(width())/float(height()),
+                           kDefaultNearPlane, kDefaultFarPlane);
 
-    const QVector3D camPos   = cameraController_->position();
-    const QVector3D forward  = cameraController_->forwardVector();
-    const QVector3D up       = cameraController_->upVector();
+    const QVector3D camPos  = cameraController_->position();
+    const QVector3D forward = cameraController_->forwardVector();
+    const QVector3D up      = cameraController_->upVector();
 
     QMatrix4x4 view;
     view.lookAt(camPos, camPos + forward, up);
 
     QMatrix4x4 model;
-    model.setToIdentity();  // If you have no per-object transform
+    model.setToIdentity(); // or any per-object transform
 
     return projection * view * model;
 }
