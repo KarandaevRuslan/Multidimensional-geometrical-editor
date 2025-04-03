@@ -36,6 +36,11 @@ SceneRenderer::~SceneRenderer()
 {
     makeCurrent();
     program_.reset();
+    depthProgram_.reset();
+    if (depthMapFbo_ != 0)
+        glDeleteFramebuffers(1, &depthMapFbo_);
+    if (depthMapTex_ != 0)
+        glDeleteTextures(1, &depthMapTex_);
     doneCurrent();
 }
 
@@ -56,69 +61,174 @@ void SceneRenderer::initializeGL()
     initializeOpenGLFunctions();
 
     glEnable(GL_DEPTH_TEST);
-    // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glEnable(GL_CULL_FACE);
+    glDisable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
-
     glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA);
 
-    // Create + link a shader program
+    // 1) Create + link your main program (already in your code):
     program_ = std::make_unique<QOpenGLShaderProgram>();
     program_->addShaderFromSourceFile(QOpenGLShader::Vertex,   ":/shaders/vertex_shader.glsl");
     program_->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/fragment_shader.glsl");
     program_->link();
 
-    // Cache uniform locations
+    // Cache uniform locations from main program
     mvpMatrixLoc_        = program_->uniformLocation("uMvpMatrix");
-    // Additional lighting uniforms (you can store them in class members if you like)
-    // e.g.: lightDirLoc_ = program_->uniformLocation("uLightDirection");
-    //       etc.
+    lightSpaceMatrixLoc_ = program_->uniformLocation("uLightSpaceMatrix");
+    shadowMapLoc_        = program_->uniformLocation("uShadowMap");
+    // … you already have e.g. uniform locs for camera, lighting, etc.
 
+    // 2) Initialize your geometry
     geometryManager_->initialize();
+
+    // 3) Prepare the depth‐only “shadow” program
+    depthProgram_ = std::make_unique<QOpenGLShaderProgram>();
+    depthProgram_->addShaderFromSourceFile(
+        QOpenGLShader::Vertex, ":/shaders/shadow_vertex.glsl");
+    depthProgram_->addShaderFromSourceFile(
+        QOpenGLShader::Fragment, ":/shaders/shadow_fragment.glsl");
+    depthProgram_->link();
+
+    // Cache depth program uniform location
+    depthMvpLoc_ = depthProgram_->uniformLocation("uLightSpaceMatrix");
+
+    // 4) Create the shadow-map FBO + texture
+    glGenFramebuffers(1, &depthMapFbo_);
+    glGenTextures(1, &depthMapTex_);
+    glBindTexture(GL_TEXTURE_2D, depthMapTex_);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+                 kShadowMapSize, kShadowMapSize, 0,
+                 GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // If you want to reduce artifacts at edges:
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo_);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                           GL_TEXTURE_2D, depthMapTex_, 0);
+    // We don’t render color here—just depth
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    // Check completeness
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        qWarning() << "Shadow-map FBO is not complete!";
+    }
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE) {
+        qWarning() << "Shadow-map FBO is not complete! Status:" << status;
+    } else {
+        qDebug() << "Shadow-map FBO is complete!";
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
 }
 
 void SceneRenderer::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
-    centerScreenPos_ = mapToGlobal(QPoint(width()/2, height()/2));
+
+    centerScreenPos_ = mapToGlobal(QPoint(w * devicePixelRatio() / 2, h * devicePixelRatio() / 2));
     inputHandler_->setWidgetCenter(centerScreenPos_);
 }
 
 void SceneRenderer::paintGL()
 {
+    // 1) Render the scene from the light’s perspective into the depthMapFbo_
+    renderShadowPass();
+
+    // 2) Render the scene from the camera’s perspective (your existing main pass),
+    //    but now we have a shadow map to sample from in the fragment shader.
+    renderScenePass();
+
+    // That’s it. Overlays remain intact as well.
+}
+
+void SceneRenderer::renderShadowPass()
+{
+    // Prep
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo_);
+
+    glViewport(0, 0, kShadowMapSize, kShadowMapSize);
+
+    glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Bind the “depth only” program
+    depthProgram_->bind();
 
+    QMatrix4x4 model;
+    model.setToIdentity();
+    depthProgram_->setUniformValue("uModelMatrix", model);
 
-    // 1) Update geometry buffers from scene
+    // Construct the light-space MVP
+    QMatrix4x4 lightSpace = buildLightSpaceMatrix();
+    depthProgram_->setUniformValue(depthMvpLoc_, lightSpace);
+
+    // Render your geometry (same geometry calls, just no color nor normal usage).
     geometryManager_->updateGeometry();
+    geometryManager_->renderAll(depthProgram_.get());
 
-    // 2) Build MVP
-    QMatrix4x4 mvp = buildMvpMatrix();
+    depthProgram_->release();
 
-    paintOverlayLabels(mvp);
+    // // Restore
+    glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
+    glEnable(GL_CULL_FACE);
+}
 
+void SceneRenderer::renderScenePass()
+{
+    glViewport(0, 0, width() * devicePixelRatio(), height() * devicePixelRatio());
+
+    // Restore full window size
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    // 3) Bind the shader program
+    // 1) Overlays are still drawn in 2D after this pass, so we can keep or reorder.
+    //    But if you want them on top, do them after geometry.
+
+
+    QMatrix4x4 mvp = buildMvpMatrix();
+    // paintOverlayLabels(mvp);
+    // glEnable(GL_DEPTH_TEST);
+
+    // 2) Prepare your main program (with lighting + shadow sampling).
     program_->bind();
 
-    // 4) Set the necessary uniforms:
+    // a) Build your regular MVP from camera
+
     program_->setUniformValue(mvpMatrixLoc_, mvp);
 
     QMatrix4x4 model;
     model.setToIdentity();
     program_->setUniformValue("uModelMatrix", model);
 
-    // Pass the camera forward vector; the shader will use its negative for lighting.
+    // b) Build the same light-space matrix used in shadow pass
+    QMatrix4x4 lightSpace = buildLightSpaceMatrix();
+    QMatrix4x4 biasMatrix;
+    biasMatrix.setToIdentity();
+    biasMatrix.translate(0.5f, 0.5f, 0.5f);
+    biasMatrix.scale(0.5f, 0.5f, 0.5f);
+    lightSpace = biasMatrix * lightSpace;
+
+    program_->setUniformValue(lightSpaceMatrixLoc_, lightSpace);
+
+    // c) Bind the shadow map to some texture unit, say GL_TEXTURE0
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, depthMapTex_);
+    program_->setUniformValue(shadowMapLoc_, 0); // “uShadowMap = texture unit 0”
+
+    // d) Set other existing lighting uniforms
+
+    program_->setUniformValue("uShadowDir", QVector3D(20, 20, 20));
     program_->setUniformValue("uCameraForward", cameraController_->forwardVector());
-
-    // Set the camera position for specular lighting calculations.
-    program_->setUniformValue("uViewPos", cameraController_->position());
-
-    // Set other lighting uniforms.
+    program_->setUniformValue("uViewPos",       cameraController_->position());
     program_->setUniformValue("uLightColor",      QVector3D(1.0f, 1.0f, 1.0f));
     program_->setUniformValue("uAmbientColor",    QVector3D(1.0f, 1.0f, 1.0f));
     program_->setUniformValue("uAmbientStrength", 0.2f);
@@ -126,11 +236,16 @@ void SceneRenderer::paintGL()
     program_->setUniformValue("uSpecularStrength", 0.5f);
     program_->setUniformValue("uShininess", 32.0f);
 
-    // 5) Render all geometry
+    // e) Render the scene
+    geometryManager_->updateGeometry();
     geometryManager_->renderAll(program_.get());
 
     program_->release();
+
+    // 3) Now draw your textual overlays (the axis labels, etc.)
+
 }
+
 
 void SceneRenderer::keyPressEvent(QKeyEvent* event)
 {
@@ -167,6 +282,32 @@ void SceneRenderer::updateCamera()
     inputHandler_->updateCamera(*cameraController_);
     update();
 }
+
+QMatrix4x4 SceneRenderer::buildLightSpaceMatrix() const
+{
+
+    QVector3D lightPos(-20.0f, -20.0f, -20.0f);
+    QVector3D target(0.0f, 0.0f, 0.0f);
+    QMatrix4x4 lightView;
+    lightView.lookAt(lightPos, target, QVector3D(0, 1, 0));
+
+    // 4) Build an orthographic projection that encloses your scene.
+    //    (For small scenes, ±some bounding region)
+    QMatrix4x4 lightProj;
+    float halfSize = 50.0f; // must be big enough to contain geometry
+    lightProj.ortho(-halfSize, halfSize, -halfSize, halfSize, -halfSize, halfSize);
+
+
+    QMatrix4x4 lightModel;
+    lightModel.setToIdentity();
+
+
+    // Комбинируем матрицы для получения light-space матрицы
+    QMatrix4x4 lightSpace = lightProj * lightView * lightModel;
+
+    return lightSpace;
+}
+
 
 QMatrix4x4 SceneRenderer::buildMvpMatrix() const
 {

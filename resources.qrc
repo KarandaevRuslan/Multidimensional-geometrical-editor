@@ -1,9 +1,7 @@
 <RCC>
     <qresource prefix="/">
-		<file>shaders/depth_vertex.glsl</file>
-		<file>shaders/depth_fragment.glsl</file>
-		<file>shaders/main_vertex.glsl</file>
-		<file>shaders/main_fragment.glsl</file>
+		<file>shaders/shadow_vertex.glsl</file>
+		<file>shaders/shadow_fragment.glsl</file>
 		<file>shaders/vertex_shader.glsl</file>
 		<file>shaders/fragment_shader.glsl</file>
     </qresource>

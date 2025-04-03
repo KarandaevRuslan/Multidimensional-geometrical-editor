@@ -44,6 +44,28 @@ private slots:
     void updateCamera();
 
 private:
+    // --- For Shadow Mapping ---
+    GLuint depthMapFbo_ = 0;
+    GLuint depthMapTex_ = 0;
+    std::unique_ptr<QOpenGLShaderProgram> depthProgram_;
+
+    // Resolution of the shadow map (feel free to tweak)
+    static const int kShadowMapSize = 5000;
+
+    // Uniform locations for depthProgram_
+    GLint depthMvpLoc_ = -1;
+
+    // Uniform locations for main program (shadow sampling)
+    GLint lightSpaceMatrixLoc_ = -1;
+    GLint shadowMapLoc_ = -1;
+
+    // Extra helper
+    QMatrix4x4 buildLightSpaceMatrix() const;
+
+    // The actual two-pass flow
+    void renderShadowPass();
+    void renderScenePass();
+
     QMatrix4x4 buildMvpMatrix() const;
 
     // Overlays

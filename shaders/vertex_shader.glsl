@@ -5,24 +5,30 @@ layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec3 aColor;
 
 uniform mat4 uMvpMatrix;
-uniform mat4 uModelMatrix; // Allows proper world-space transformation
+uniform mat4 uModelMatrix;
+uniform mat4 uLightSpaceMatrix; // <-- Add this
 
 out vec3 vNormal;
 out vec3 vColor;
 out vec3 vWorldPos;
 
+// ADD THIS
+out vec4 vShadowCoord;
+
 void main()
 {
-    // Pass vertex color directly.
     vColor = aColor;
 
-    // Compute world-space position.
     vec4 worldPos = uModelMatrix * vec4(aPosition, 1.0);
     vWorldPos = worldPos.xyz;
 
-    // Transform normals correctly (using the inverse transpose for non-uniform scaling).
     vNormal = mat3(transpose(inverse(uModelMatrix))) * aNormal;
 
-    // Standard MVP transform.
+    // The usual MVP
     gl_Position = uMvpMatrix * vec4(aPosition, 1.0);
+
+    // Add a projected coordinate from the light’s perspective:
+    vShadowCoord = uLightSpaceMatrix * worldPos;
+
+
 }
