@@ -1,4 +1,5 @@
 #include "sceneRenderer.h"
+
 #include <QOpenGLShaderProgram>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -13,7 +14,6 @@
 
 SceneRenderer::SceneRenderer(QWidget* parent)
     : QOpenGLWidget(parent)
-    , program_(nullptr)
     , cameraController_(std::make_unique<CameraController>())
     , geometryManager_(std::make_unique<SceneGeometryManager>())
     , inputHandler_(std::make_unique<SceneInputHandler>())
@@ -26,8 +26,9 @@ SceneRenderer::SceneRenderer(QWidget* parent)
     connect(&movementTimer_, &QTimer::timeout, this, &SceneRenderer::updateCamera);
     movementTimer_.start();
 
-    connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled,
-            this, [this](bool enabled) {
+    connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled, this,
+            [this](bool enabled)
+            {
                 setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
             });
 }
@@ -37,10 +38,12 @@ SceneRenderer::~SceneRenderer()
     makeCurrent();
     program_.reset();
     depthProgram_.reset();
+
     if (depthMapFbo_ != 0)
         glDeleteFramebuffers(1, &depthMapFbo_);
     if (depthMapTex_ != 0)
         glDeleteTextures(1, &depthMapTex_);
+
     doneCurrent();
 }
 
@@ -66,65 +69,65 @@ void SceneRenderer::initializeGL()
     glFrontFace(GL_CCW);
     glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA);
 
-    // 1) Create + link your main program (already in your code):
+    setupMainProgram();
+    setupDepthProgram();
+    initShadowFBO();
+
+    geometryManager_->initialize();
+
+    // Prerender scene shadow map
+    renderShadowPass();
+
+}
+
+void SceneRenderer::setupMainProgram()
+{
     program_ = std::make_unique<QOpenGLShaderProgram>();
     program_->addShaderFromSourceFile(QOpenGLShader::Vertex,   ":/shaders/vertex_shader.glsl");
     program_->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/fragment_shader.glsl");
     program_->link();
 
-    // Cache uniform locations from main program
     mvpMatrixLoc_        = program_->uniformLocation("uMvpMatrix");
     lightSpaceMatrixLoc_ = program_->uniformLocation("uLightSpaceMatrix");
     shadowMapLoc_        = program_->uniformLocation("uShadowMap");
-    // … you already have e.g. uniform locs for camera, lighting, etc.
+}
 
-    // 2) Initialize your geometry
-    geometryManager_->initialize();
-
-    // 3) Prepare the depth‐only “shadow” program
+void SceneRenderer::setupDepthProgram()
+{
     depthProgram_ = std::make_unique<QOpenGLShaderProgram>();
-    depthProgram_->addShaderFromSourceFile(
-        QOpenGLShader::Vertex, ":/shaders/shadow_vertex.glsl");
-    depthProgram_->addShaderFromSourceFile(
-        QOpenGLShader::Fragment, ":/shaders/shadow_fragment.glsl");
+    depthProgram_->addShaderFromSourceFile(QOpenGLShader::Vertex,   ":/shaders/shadow_vertex.glsl");
+    depthProgram_->addShaderFromSourceFile(QOpenGLShader::Fragment, ":/shaders/shadow_fragment.glsl");
     depthProgram_->link();
 
-    // Cache depth program uniform location
     depthMvpLoc_ = depthProgram_->uniformLocation("uLightSpaceMatrix");
+}
 
-    // 4) Create the shadow-map FBO + texture
+void SceneRenderer::initShadowFBO()
+{
     glGenFramebuffers(1, &depthMapFbo_);
     glGenTextures(1, &depthMapTex_);
+
     glBindTexture(GL_TEXTURE_2D, depthMapTex_);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
-                 kShadowMapSize, kShadowMapSize, 0,
+                 shadowMapSize_, shadowMapSize_, 0,
                  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // If you want to reduce artifacts at edges:
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
 
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo_);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
-                           GL_TEXTURE_2D, depthMapTex_, 0);
-    // We don’t render color here—just depth
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTex_, 0);
+
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
-    // Check completeness
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        qWarning() << "Shadow-map FBO is not complete!";
-    }
     GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-    if (status != GL_FRAMEBUFFER_COMPLETE) {
+    if (status != GL_FRAMEBUFFER_COMPLETE)
         qWarning() << "Shadow-map FBO is not complete! Status:" << status;
-    } else {
-        qDebug() << "Shadow-map FBO is complete!";
-    }
 
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
 }
@@ -132,76 +135,58 @@ void SceneRenderer::initializeGL()
 void SceneRenderer::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
-
-    centerScreenPos_ = mapToGlobal(QPoint(w * devicePixelRatio() / 2, h * devicePixelRatio() / 2));
+    centerScreenPos_ = mapToGlobal(QPoint(int(w * devicePixelRatio() / 2),
+                                          int(h * devicePixelRatio() / 2)));
     inputHandler_->setWidgetCenter(centerScreenPos_);
 }
 
 void SceneRenderer::paintGL()
 {
-    // 1) Render the scene from the light’s perspective into the depthMapFbo_
-    renderShadowPass();
-
-    // 2) Render the scene from the camera’s perspective (your existing main pass),
-    //    but now we have a shadow map to sample from in the fragment shader.
+    // renderShadowPass();
     renderScenePass();
-
-    // That’s it. Overlays remain intact as well.
 }
 
 void SceneRenderer::renderShadowPass()
 {
-    // Prep
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFbo_);
-
-    glViewport(0, 0, kShadowMapSize, kShadowMapSize);
-
+    glViewport(0, 0, shadowMapSize_, shadowMapSize_);
     glClear(GL_DEPTH_BUFFER_BIT);
+
     glEnable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
 
-    // Bind the “depth only” program
     depthProgram_->bind();
 
-    QMatrix4x4 model;
-    model.setToIdentity();
-    depthProgram_->setUniformValue("uModelMatrix", model);
-
-    // Construct the light-space MVP
     QMatrix4x4 lightSpace = buildLightSpaceMatrix();
     depthProgram_->setUniformValue(depthMvpLoc_, lightSpace);
 
-    // Render your geometry (same geometry calls, just no color nor normal usage).
     geometryManager_->updateGeometry();
     geometryManager_->renderAll(depthProgram_.get());
 
     depthProgram_->release();
 
-    // // Restore
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFramebufferObject());
     glEnable(GL_CULL_FACE);
 }
 
 void SceneRenderer::renderScenePass()
 {
-    glViewport(0, 0, width() * devicePixelRatio(), height() * devicePixelRatio());
-
-    // Restore full window size
+    glViewport(0, 0,
+               static_cast<GLsizei>(width() * devicePixelRatio()),
+               static_cast<GLsizei>(height() * devicePixelRatio()));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
-    // 1) Overlays are still drawn in 2D after this pass, so we can keep or reorder.
-    //    But if you want them on top, do them after geometry.
-
-
+    // Draw ovelay numbers
     QMatrix4x4 mvp = buildMvpMatrix();
-    // paintOverlayLabels(mvp);
-    // glEnable(GL_DEPTH_TEST);
+    paintOverlayLabels(mvp);
+    glEnable(GL_DEPTH_TEST);
 
-    // 2) Prepare your main program (with lighting + shadow sampling).
     program_->bind();
 
-    // a) Build your regular MVP from camera
+    // ---------------------------
+    // Vertex shader
+    // ---------------------------
 
     program_->setUniformValue(mvpMatrixLoc_, mvp);
 
@@ -209,43 +194,138 @@ void SceneRenderer::renderScenePass()
     model.setToIdentity();
     program_->setUniformValue("uModelMatrix", model);
 
-    // b) Build the same light-space matrix used in shadow pass
+    // Build the same light-space matrix used in shadow pass, then apply bias:
     QMatrix4x4 lightSpace = buildLightSpaceMatrix();
     QMatrix4x4 biasMatrix;
-    biasMatrix.setToIdentity();
     biasMatrix.translate(0.5f, 0.5f, 0.5f);
     biasMatrix.scale(0.5f, 0.5f, 0.5f);
     lightSpace = biasMatrix * lightSpace;
-
     program_->setUniformValue(lightSpaceMatrixLoc_, lightSpace);
 
-    // c) Bind the shadow map to some texture unit, say GL_TEXTURE0
+
+    // ---------------------------
+    // Fragment shader
+    // ---------------------------
+
+    // Lighting control uniforms
+    program_->setUniformValue("uShininess",           shininess_);
+    program_->setUniformValue("uAmbientStrength",     ambientStrength_);
+    program_->setUniformValue("uSpecularStrength",    specularStrength_);
+    program_->setUniformValue("uDirectionalStrength", directionalStrength_);
+    program_->setUniformValue("uShadowLightStrength", shadowLightStrength_);
+    program_->setUniformValue("uColorBlendFactor",    colorBlendFactor_);
+
+    // Lighting properties uniforms
+    program_->setUniformValue("uAmbientColor",        ambientColor_);
+    program_->setUniformValue("uLightColor",          lightColor_);
+    program_->setUniformValue("uShadowLightColor",    shadowLightColor_);
+
+    // Light directions & positions uniforms
+    program_->setUniformValue("uCameraForward",       cameraController_->forwardVector());
+    program_->setUniformValue("uShadowDir",           shadowLightTarget_ - shadowLightPos_);
+    program_->setUniformValue("uViewPos",             cameraController_->position());
+    program_->setUniformValue("uShadowViewPos",       shadowLightPos_);
+
+    // Shadow mapping uniforms
+    program_->setUniformValue("uPcfKernelDim",        pcfKernelDim_);
+    program_->setUniformValue("uShadowBiasScale",     shadowBiasScale_);
+    program_->setUniformValue("uShadowBiasMin",       shadowBiasMin_);
+    // Bind shadow map texture (unit 0)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, depthMapTex_);
-    program_->setUniformValue(shadowMapLoc_, 0); // “uShadowMap = texture unit 0”
+    program_->setUniformValue(shadowMapLoc_, 0);
 
-    // d) Set other existing lighting uniforms
-
-    program_->setUniformValue("uShadowDir", QVector3D(20, 20, 20));
-    program_->setUniformValue("uCameraForward", cameraController_->forwardVector());
-    program_->setUniformValue("uViewPos",       cameraController_->position());
-    program_->setUniformValue("uLightColor",      QVector3D(1.0f, 1.0f, 1.0f));
-    program_->setUniformValue("uAmbientColor",    QVector3D(1.0f, 1.0f, 1.0f));
-    program_->setUniformValue("uAmbientStrength", 0.2f);
-    program_->setUniformValue("uDirectionalStrength", 1.0f);
-    program_->setUniformValue("uSpecularStrength", 0.5f);
-    program_->setUniformValue("uShininess", 32.0f);
-
-    // e) Render the scene
     geometryManager_->updateGeometry();
     geometryManager_->renderAll(program_.get());
 
     program_->release();
-
-    // 3) Now draw your textual overlays (the axis labels, etc.)
-
 }
 
+
+QMatrix4x4 SceneRenderer::buildLightSpaceMatrix() const
+{
+    QMatrix4x4 lightView;
+    lightView.lookAt(shadowLightPos_, shadowLightTarget_, shadowLightUpDir_);
+
+    QMatrix4x4 lightProj;
+    lightProj.ortho(-shadowOrthographicSize_, shadowOrthographicSize_,
+                    -shadowOrthographicSize_, shadowOrthographicSize_,
+                    -shadowOrthographicSize_, shadowOrthographicSize_);
+
+
+    return lightProj * lightView;
+}
+
+QMatrix4x4 SceneRenderer::buildMvpMatrix() const
+{
+    QMatrix4x4 projection;
+    projection.perspective(kDefaultFovY, float(width()) / float(height()),
+                           kDefaultNearPlane, kDefaultFarPlane);
+
+    const QVector3D camPos  = cameraController_->position();
+    const QVector3D forward = cameraController_->forwardVector();
+    const QVector3D up      = cameraController_->upVector();
+
+    QMatrix4x4 view;
+    view.lookAt(camPos, camPos + forward, up);
+
+    return projection * view;
+}
+
+QPointF SceneRenderer::projectToScreen(const QVector3D &point, const QMatrix4x4 &mvp) const
+{
+    QVector4D clip = mvp * QVector4D(point, 1.0f);
+
+    if (clip.w() <= 0.0f)
+        return QPointF(kOffScreenCoord, kOffScreenCoord);
+
+    float ndcX = clip.x() / clip.w();
+    float ndcY = clip.y() / clip.w();
+    float ndcZ = clip.z() / clip.w();
+
+    if (ndcX < -1.0f || ndcX > 1.0f ||
+        ndcY < -1.0f || ndcY > 1.0f ||
+        ndcZ < -1.0f || ndcZ > 1.0f)
+    {
+        return QPointF(kOffScreenCoord, kOffScreenCoord);
+    }
+
+    float sx = (ndcX * 0.5f + 0.5f) * float(width());
+    float sy = (1.0f - (ndcY * 0.5f + 0.5f)) * float(height());
+
+    return QPointF(sx, sy);
+}
+
+void SceneRenderer::paintOverlayLabels(const QMatrix4x4 &mvp)
+{
+    QPainter painter(this);
+    painter.setPen(overlayPen_);
+    painter.setFont(overlayFont_);
+    painter.beginNativePainting();
+    painter.endNativePainting();
+
+    auto labelIfVisible = [&](int i, const QVector3D &worldPos)
+    {
+        QPointF sp = projectToScreen(worldPos, mvp);
+        if (sp.x() >= 0.0f)
+            painter.drawText(sp, QString::number(i));
+    };
+
+    // Zero at origin
+    {
+        QPointF sp = projectToScreen(QVector3D(0,0,0), mvp);
+        if (sp.x() >= 0.0f)
+            painter.drawText(sp, "0");
+    }
+
+    for (int i = -kAxisLabelRange; i <= kAxisLabelRange; ++i)
+    {
+        if (i == 0) continue;
+        labelIfVisible(i, QVector3D(float(i), 0.0f, 0.0f));
+        labelIfVisible(i, QVector3D(0.0f, float(i), 0.0f));
+        labelIfVisible(i, QVector3D(0.0f, 0.0f, float(i)));
+    }
+}
 
 void SceneRenderer::keyPressEvent(QKeyEvent* event)
 {
@@ -281,115 +361,4 @@ void SceneRenderer::updateCamera()
 {
     inputHandler_->updateCamera(*cameraController_);
     update();
-}
-
-QMatrix4x4 SceneRenderer::buildLightSpaceMatrix() const
-{
-
-    QVector3D lightPos(-20.0f, -20.0f, -20.0f);
-    QVector3D target(0.0f, 0.0f, 0.0f);
-    QMatrix4x4 lightView;
-    lightView.lookAt(lightPos, target, QVector3D(0, 1, 0));
-
-    // 4) Build an orthographic projection that encloses your scene.
-    //    (For small scenes, ±some bounding region)
-    QMatrix4x4 lightProj;
-    float halfSize = 50.0f; // must be big enough to contain geometry
-    lightProj.ortho(-halfSize, halfSize, -halfSize, halfSize, -halfSize, halfSize);
-
-
-    QMatrix4x4 lightModel;
-    lightModel.setToIdentity();
-
-
-    // Комбинируем матрицы для получения light-space матрицы
-    QMatrix4x4 lightSpace = lightProj * lightView * lightModel;
-
-    return lightSpace;
-}
-
-
-QMatrix4x4 SceneRenderer::buildMvpMatrix() const
-{
-    QMatrix4x4 projection;
-    projection.perspective(kDefaultFovY, float(width())/float(height()),
-                           kDefaultNearPlane, kDefaultFarPlane);
-
-    const QVector3D camPos  = cameraController_->position();
-    const QVector3D forward = cameraController_->forwardVector();
-    const QVector3D up      = cameraController_->upVector();
-
-    QMatrix4x4 view;
-    view.lookAt(camPos, camPos + forward, up);
-
-    QMatrix4x4 model;
-    model.setToIdentity(); // or any per-object transform
-
-    return projection * view * model;
-}
-
-void SceneRenderer::paintOverlayLabels(const QMatrix4x4 &mvp)
-{
-    QPainter painter(this);
-    painter.setPen(Qt::black);
-    painter.setFont(QFont("Arial", kOverlayFontSize));
-
-    painter.beginNativePainting();
-    painter.endNativePainting();
-
-    // Just an example labeling: axis ticks from -20..+20
-    auto labelIfVisible = [&](int i, const QVector3D &worldPos)
-    {
-        QPointF sp = projectToScreen(worldPos, mvp);
-        if (sp.x() < 0.0f) return; // means off-screen
-        painter.drawText(sp, QString::number(i));
-    };
-
-    // "0" at origin
-    {
-        QPointF sp = projectToScreen(QVector3D(0,0,0), mvp);
-        if (sp.x() >= 0.0f) {
-            painter.drawText(sp, "0");
-        }
-    }
-
-    // X axis
-    for (int i = -kAxisLabelRange; i <= kAxisLabelRange; ++i) {
-        if (i == 0) continue;
-        labelIfVisible(i, QVector3D(float(i), 0.0f, 0.0f));
-    }
-    // Y axis
-    for (int i = -kAxisLabelRange; i <= kAxisLabelRange; ++i) {
-        if (i == 0) continue;
-        labelIfVisible(i, QVector3D(0.0f, float(i), 0.0f));
-    }
-    // Z axis
-    for (int i = -kAxisLabelRange; i <= kAxisLabelRange; ++i) {
-        if (i == 0) continue;
-        labelIfVisible(i, QVector3D(0.0f, 0.0f, float(i)));
-    }
-}
-
-QPointF SceneRenderer::projectToScreen(const QVector3D &point, const QMatrix4x4 &mvp) const
-{
-    QVector4D clip = mvp * QVector4D(point, 1.0f);
-
-    if (clip.w() <= 0.0f) {
-        return QPointF(kOffScreenCoord, kOffScreenCoord);
-    }
-
-    float ndcX = clip.x() / clip.w();
-    float ndcY = clip.y() / clip.w();
-    float ndcZ = clip.z() / clip.w();
-
-    if (ndcX < -1.0f || ndcX > 1.0f ||
-        ndcY < -1.0f || ndcY > 1.0f ||
-        ndcZ < -1.0f || ndcZ > 1.0f)
-    {
-        return QPointF(kOffScreenCoord, kOffScreenCoord);
-    }
-
-    float sx = (ndcX * 0.5f + 0.5f) * float(width());
-    float sy = (1.0f - (ndcY * 0.5f + 0.5f)) * float(height());
-    return QPointF(sx, sy);
 }

@@ -1,97 +1,187 @@
 #version 330 core
 
+/**
+ *  Interpolated normal from the vertex shader.
+ */
 in vec3 vNormal;
+
+/**
+ *  Interpolated color from the vertex shader.
+ */
 in vec3 vColor;
+
+/**
+ *  World-space position of this fragment.
+ */
 in vec3 vWorldPos;
 
-// ADD THIS
-in vec4 vShadowCoord; // We’ll pass this from the vertex shader
+/**
+ *  Light-space coordinate for shadow testing.
+ */
+in vec4 vShadowCoord;
 
+/**
+ *  Final output color of this fragment.
+ */
 out vec4 fragColor;
 
-// Already in your code:
-uniform vec3  uCameraForward;
-uniform vec3  uShadowDir;
-uniform vec3  uLightColor;
-uniform vec3  uAmbientColor;
-uniform float uAmbientStrength;
-uniform float uDirectionalStrength;
-uniform float uSpecularStrength;
-uniform float uShininess;
-uniform vec3  uViewPos;
-uniform bool  uApplyLighting;
+// ---------------------------
+// Lighting control
+// ---------------------------
 
-// ADD THESE UNIFORMS
+/**
+ *  Toggles lighting on/off. If false, color is used directly.
+ */
+uniform bool uApplyLighting;
+
+/**
+ *  Shininess exponent for specular lighting.
+ */
+uniform float uShininess;
+
+/**
+ *  Factor controlling how strong ambient lighting is.
+ */
+uniform float uAmbientStrength;
+
+/**
+ *  Strength of specular highlights.
+ */
+uniform float uSpecularStrength;
+
+/**
+ *  Strength of primary directional (diffuse) lighting.
+ */
+uniform float uDirectionalStrength;
+
+/**
+ *  Intensity/strength of the additional light.
+ */
+uniform float uShadowLightStrength;
+
+/**
+ *  Blend factor between main and shadow lighting (0.0 - 1.0).
+ */
+uniform float uColorBlendFactor;
+
+// ---------------------------
+// Light properties
+// ---------------------------
+
+/**
+ *  Ambient color in the scene.
+ */
+uniform vec3 uAmbientColor;
+
+/**
+ *  Light color used for the primary directional lighting.
+ */
+uniform vec3 uLightColor;
+
+/**
+ *  Color of the additional light (from uShadowDir).
+ */
+uniform vec3 uShadowLightColor;
+
+// ---------------------------
+// Light directions & positions
+// ---------------------------
+
+/**
+ *  Direction of the light for shading (primary light).
+ */
+uniform vec3 uCameraForward;
+
+/**
+ *  Direction from which the shadow light is coming.
+ */
+uniform vec3 uShadowDir;
+
+/**
+ *  Position of the camera, needed for specular calculations.
+ */
+uniform vec3 uViewPos;
+
+/**
+ *  Position of the light for shading, needed for specular calculations.
+ */
+uniform vec3 uShadowViewPos;
+
+// ---------------------------
+// Shadow mapping
+// ---------------------------
+
+/**
+ *  Dimension of the PCF kernel.
+ */
+uniform int uPcfKernelDim;
+
+/**
+ *  Scale factor for shadow bias based on surface angle.
+ */
+uniform float uShadowBiasScale;
+
+/**
+ *  Minimum shadow bias.
+ */
+uniform float uShadowBiasMin;
+
+/**
+ *  Shadow map to compare depth values against (sampler2DShadow).
+ */
 uniform sampler2DShadow uShadowMap;
-uniform mat4 uLightSpaceMatrix;
+
+vec3 computeLighting(vec3 lightDir, vec3 lightColor, float lightStrength, vec3 viewPos, vec3 ambient) {
+    vec3 norm     = normalize(vNormal);
+    float lambert = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse  = lightStrength * lightColor * lambert;
+    vec3 viewDir  = normalize(viewPos - vWorldPos);
+    vec3 halfDir  = normalize(lightDir + viewDir);
+    float spec    = pow(max(dot(norm, halfDir), 0.0), uShininess);
+    vec3 specular = uSpecularStrength * spec * lightColor;
+    return vColor * (ambient + diffuse) + specular;
+}
+
+float computeShadowFactor(vec3 norm) {
+    float bias = max(uShadowBiasScale * (1.0 - dot(norm, normalize(uShadowDir))),
+                     uShadowBiasMin);
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
+    float kernelRadius = float(uPcfKernelDim - 1) * 0.5;
+
+    for (int x = 0; x < uPcfKernelDim; ++x) {
+        for (int y = 0; y < uPcfKernelDim; ++y) {
+            vec2 offset = (vec2(float(x), float(y)) - kernelRadius) * texelSize;
+            vec4 offsetCoord = vShadowCoord;
+            offsetCoord.xy += offset;
+            offsetCoord.z  -= bias;
+            shadow += textureProj(uShadowMap, offsetCoord);
+        }
+    }
+
+    return shadow / float(uPcfKernelDim * uPcfKernelDim);
+}
 
 void main()
 {
-    // If lighting is off, do exactly what you had before:
     if (!uApplyLighting) {
         fragColor = vec4(vColor, 1.0);
         return;
     }
 
-    // 1) Normal lighting steps (unchanged)
+    vec3 norm    = normalize(vNormal);
     vec3 ambient = uAmbientColor * uAmbientStrength;
-    vec3 lightDir = normalize(-uCameraForward);
-    vec3 norm = normalize(vNormal);
-    float lambert = max(dot(norm, lightDir), 0.0);
-    vec3 directional = uDirectionalStrength * uLightColor * lambert;
 
-    vec3 viewDir = normalize(uViewPos - vWorldPos);
-    vec3 halfDir = normalize(lightDir + viewDir);
-    float specAngle = max(dot(norm, halfDir), 0.0);
-    float specularFactor = pow(specAngle, uShininess);
-    vec3 specular = uSpecularStrength * specularFactor * uLightColor;
+    // ----- Primary lighting (camera forward) -----
+    vec3 lightDirMain = normalize(-uCameraForward);
+    vec3 litColorMain = computeLighting(lightDirMain, uLightColor, uDirectionalStrength, uViewPos, ambient);
 
-    // 2) Combine them ignoring shadows (so far)
-    vec3 litColor = vColor * (ambient + directional) + specular;
+    // ----- Shadow lighting -----
+    float shadow = computeShadowFactor(norm);
+    vec3 lightDirShadow = normalize(-uShadowDir);
+    vec3 litColorShadow = computeLighting(lightDirShadow, uShadowLightColor, uShadowLightStrength, uShadowViewPos, ambient);
 
-    // 3) Calculate a shadow factor in [0..1]
-    //    We need the shadowMap and vShadowCoord (projected light space).
-    //    If you used an orthographic light, or a 4D lightSpaceCoord, we do:
-    //        float shadow = textureProj(uShadowMap, vShadowCoord);
-    //    The result is ~1.0 if lit, ~0.0 if in shadow.  So multiply final color by that.
-    //    Check that we have the correct .xyz/.w arrangement.
-    // Вычисление динамического bias (опционально, для борьбы с shadow acne)
-    float bias = max(0.001 * (1.0 - dot(norm, uShadowDir)), 0.0008);
-
-    // PCF – сглаживание теней
-    float shadow = 0.0;
-    // Определяем размер одного текселя теневой карты
-    vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
-    for (int x = 0; x < 4; ++x) {
-        for (int y = 0; y < 4; ++y) {
-            vec4 offsetCoord = vShadowCoord;
-            offsetCoord.xy += (vec2(float(x), float(y)) - 1.5) * texelSize;
-            // Применяем bias к z-компоненте
-            offsetCoord.z -= bias;
-            shadow += textureProj(uShadowMap, offsetCoord);
-        }
-    }
-    // Усредняем 16 выборок
-    shadow /= 16.0;
-
-    // Итоговый цвет с учетом тени
-    vec3 finalColor = litColor * (0.7 + 0.35 * shadow);
-
+    // ----- Final blend -----
+    vec3 finalColor = uColorBlendFactor * litColorMain + (1.0 - uColorBlendFactor) * litColorShadow * shadow;
     fragColor = vec4(finalColor, 1.0);
-
-    // Debug
-
-    // fragColor = vec4(vec3(shadow), 1.0);
-
-    // vec3 shadowCoord = vShadowCoord.xyz / vShadowCoord.w;
-    // fragColor = vec4(shadowCoord, 1.0);
-
-    // fragColor = vec4(1.0, 1.0, 0.0, 1.0);
-    // vec3 proj = vShadowCoord.xyz / vShadowCoord.w;
-    // if (proj.x < 0.0 || proj.x > 1.0 ||
-    //     proj.y < 0.0 || proj.y > 1.0 ||
-    //     proj.z < 0.0 || proj.z > 1.0) {
-    //     fragColor = vec4(1.0, 0.0, 0.0, 1.0); // красный = вне shadow map
-    //     return;
-    // }
 }
