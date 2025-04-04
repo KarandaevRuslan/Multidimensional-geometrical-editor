@@ -1,5 +1,5 @@
-#ifndef CONFIGMANAGER_H
-#define CONFIGMANAGER_H
+#ifndef CONFIG_MANAGER_H
+#define CONFIG_MANAGER_H
 
 #include <QJsonObject>
 #include <QJsonValue>
@@ -73,4 +73,4 @@ private:
     QJsonObject m_config;
 };
 
-#endif // CONFIGMANAGER_H
+#endif // CONFIG_MANAGER_H

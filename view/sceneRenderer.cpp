@@ -19,17 +19,19 @@ SceneRenderer::SceneRenderer(QWidget* parent)
     , inputHandler_(std::make_unique<SceneInputHandler>())
 {
     setFocusPolicy(Qt::StrongFocus);
-    setMouseTracking(true);
+    setMouseTracking(false);
     setCursor(Qt::BlankCursor);
 
-    movementTimer_.setInterval(kCameraUpdateIntervalMs);
+    movementTimer_.setInterval(kCameraUpdateIntervalMs_);
     connect(&movementTimer_, &QTimer::timeout, this, &SceneRenderer::updateCamera);
     movementTimer_.start();
 
     connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled, this,
             [this](bool enabled)
             {
-                setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
+                // setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
+                setMouseTracking(enabled);
+
             });
 }
 
@@ -67,7 +69,7 @@ void SceneRenderer::initializeGL()
     glDisable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
-    glClearColor(kClearColorR, kClearColorG, kClearColorB, kClearColorA);
+    glClearColor(kClearColorR_, kClearColorG_, kClearColorB_, kClearColorA_);
 
     setupMainProgram();
     setupDepthProgram();
@@ -160,7 +162,7 @@ void SceneRenderer::renderShadowPass()
     QMatrix4x4 lightSpace = buildLightSpaceMatrix();
     depthProgram_->setUniformValue(depthMvpLoc_, lightSpace);
 
-    geometryManager_->updateGeometry();
+    geometryManager_->updateGeometry(true);
     geometryManager_->renderAll(depthProgram_.get());
 
     depthProgram_->release();
@@ -179,7 +181,8 @@ void SceneRenderer::renderScenePass()
 
     // Draw ovelay numbers
     QMatrix4x4 mvp = buildMvpMatrix();
-    paintOverlayLabels(mvp);
+    geometryManager_->updateAxes(cameraController_->position());
+    geometryManager_->paintOverlayLabels(this, mvp);
     glEnable(GL_DEPTH_TEST);
 
     program_->bind();
@@ -235,7 +238,7 @@ void SceneRenderer::renderScenePass()
     glBindTexture(GL_TEXTURE_2D, depthMapTex_);
     program_->setUniformValue(shadowMapLoc_, 0);
 
-    geometryManager_->updateGeometry();
+    geometryManager_->updateGeometry(false);
     geometryManager_->renderAll(program_.get());
 
     program_->release();
@@ -259,8 +262,8 @@ QMatrix4x4 SceneRenderer::buildLightSpaceMatrix() const
 QMatrix4x4 SceneRenderer::buildMvpMatrix() const
 {
     QMatrix4x4 projection;
-    projection.perspective(kDefaultFovY, float(width()) / float(height()),
-                           kDefaultNearPlane, kDefaultFarPlane);
+    projection.perspective(kDefaultFovY_, float(width()) / float(height()),
+                           kDefaultNearPlane_, kDefaultFarPlane_);
 
     const QVector3D camPos  = cameraController_->position();
     const QVector3D forward = cameraController_->forwardVector();
@@ -270,61 +273,6 @@ QMatrix4x4 SceneRenderer::buildMvpMatrix() const
     view.lookAt(camPos, camPos + forward, up);
 
     return projection * view;
-}
-
-QPointF SceneRenderer::projectToScreen(const QVector3D &point, const QMatrix4x4 &mvp) const
-{
-    QVector4D clip = mvp * QVector4D(point, 1.0f);
-
-    if (clip.w() <= 0.0f)
-        return QPointF(kOffScreenCoord, kOffScreenCoord);
-
-    float ndcX = clip.x() / clip.w();
-    float ndcY = clip.y() / clip.w();
-    float ndcZ = clip.z() / clip.w();
-
-    if (ndcX < -1.0f || ndcX > 1.0f ||
-        ndcY < -1.0f || ndcY > 1.0f ||
-        ndcZ < -1.0f || ndcZ > 1.0f)
-    {
-        return QPointF(kOffScreenCoord, kOffScreenCoord);
-    }
-
-    float sx = (ndcX * 0.5f + 0.5f) * float(width());
-    float sy = (1.0f - (ndcY * 0.5f + 0.5f)) * float(height());
-
-    return QPointF(sx, sy);
-}
-
-void SceneRenderer::paintOverlayLabels(const QMatrix4x4 &mvp)
-{
-    QPainter painter(this);
-    painter.setPen(overlayPen_);
-    painter.setFont(overlayFont_);
-    painter.beginNativePainting();
-    painter.endNativePainting();
-
-    auto labelIfVisible = [&](int i, const QVector3D &worldPos)
-    {
-        QPointF sp = projectToScreen(worldPos, mvp);
-        if (sp.x() >= 0.0f)
-            painter.drawText(sp, QString::number(i));
-    };
-
-    // Zero at origin
-    {
-        QPointF sp = projectToScreen(QVector3D(0,0,0), mvp);
-        if (sp.x() >= 0.0f)
-            painter.drawText(sp, "0");
-    }
-
-    for (int i = -kAxisLabelRange; i <= kAxisLabelRange; ++i)
-    {
-        if (i == 0) continue;
-        labelIfVisible(i, QVector3D(float(i), 0.0f, 0.0f));
-        labelIfVisible(i, QVector3D(0.0f, float(i), 0.0f));
-        labelIfVisible(i, QVector3D(0.0f, 0.0f, float(i)));
-    }
 }
 
 void SceneRenderer::keyPressEvent(QKeyEvent* event)

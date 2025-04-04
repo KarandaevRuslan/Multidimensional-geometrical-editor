@@ -35,6 +35,11 @@ out vec4 fragColor;
 uniform bool uApplyLighting;
 
 /**
+ *  Toggles shadows on/off. If false, shadows will not be applied.
+ */
+uniform bool uApplyShadow;
+
+/**
  *  Shininess exponent for specular lighting.
  */
 uniform float uShininess;
@@ -181,7 +186,13 @@ void main()
     vec3 lightDirShadow = normalize(-uShadowDir);
     vec3 litColorShadow = computeLighting(lightDirShadow, uShadowLightColor, uShadowLightStrength, uShadowViewPos, ambient);
 
-    // ----- Final blend -----
+    // ----- Final -----
+    if (!uApplyShadow)
+    {
+        fragColor = vec4(litColorMain, 1.0);
+        return;
+    }
+
     vec3 finalColor = uColorBlendFactor * litColorMain + (1.0 - uColorBlendFactor) * litColorShadow * shadow;
     fragColor = vec4(finalColor, 1.0);
 }

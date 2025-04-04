@@ -133,16 +133,6 @@ private:
      */
     QMatrix4x4 buildMvpMatrix() const;
 
-    /**
-     * @brief Projects a 3D point to 2D screen coordinates.
-     */
-    QPointF projectToScreen(const QVector3D &point, const QMatrix4x4 &mvp) const;
-
-    /**
-     * @brief Draws text overlay labels (e.g. axis ticks) on top of the 3D scene.
-     */
-    void paintOverlayLabels(const QMatrix4x4 &mvp);
-
 private:
     // --- Shader programs ---
     std::unique_ptr<QOpenGLShaderProgram> program_;
@@ -172,10 +162,6 @@ private:
     QVector3D shadowLightTarget_  = { 0.0f, 0.0f,  0.0f };
     QVector3D shadowLightUpDir_   = { 0.0f, 1.0f,  0.0f };
 
-    // --- Overlay style ---
-    QPen  overlayPen_              = QPen(Qt::black);
-    QFont overlayFont_             = QFont("Arial", kOverlayFontSize);
-
     // --- Lighting parameters ---
     float     shininess_           = 32.0f;
     float     ambientStrength_     = 0.2f;
@@ -197,22 +183,17 @@ private:
     QTimer movementTimer_;
     QPoint centerScreenPos_;
 
-    // --- Camera configuration constants ---
-    static constexpr int   kCameraUpdateIntervalMs = 16;   // ~60fps
-    static constexpr float kDefaultFovY            = 45.0f;
-    static constexpr float kDefaultNearPlane       = 0.1f;
-    static constexpr float kDefaultFarPlane        = 1000.0f;
+    // --- Camera configuration ---
+    int   kCameraUpdateIntervalMs_ = 16;   // ~60fps
+    float kDefaultFovY_            = 45.0f;
+    float kDefaultNearPlane_       = 0.1f;
+    float kDefaultFarPlane_        = 1000.0f;
 
-    // --- Clear color constants ---
-    static constexpr float kClearColorR = 0.55f;
-    static constexpr float kClearColorG = 0.55f;
-    static constexpr float kClearColorB = 0.55f;
-    static constexpr float kClearColorA = 1.0f;
-
-    // --- Overlay constants ---
-    static constexpr float kOffScreenCoord = -9999.0f;
-    static constexpr int   kAxisLabelRange = 20;
-    static constexpr int   kOverlayFontSize = 10;
+    // --- Clear color ---
+    float kClearColorR_ = 0.55f;
+    float kClearColorG_ = 0.55f;
+    float kClearColorB_ = 0.55f;
+    float kClearColorA_ = 1.0f;
 };
 
 #endif // SCENERENDERER_H

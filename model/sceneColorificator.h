@@ -1,5 +1,5 @@
-#ifndef SCENECOLORIFICATOR_H
-#define SCENECOLORIFICATOR_H
+#ifndef SCENE_COLORIFICATOR_H
+#define SCENE_COLORIFICATOR_H
 
 #include <unordered_map>
 #include <QString>
@@ -259,4 +259,4 @@ private:
     std::unordered_map<int, QColor> colorMapping_;
 };
 
-#endif // SCENECOLORIFICATOR_H
+#endif // SCENE_COLORIFICATOR_H

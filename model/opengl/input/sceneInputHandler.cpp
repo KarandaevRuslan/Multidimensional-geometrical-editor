@@ -7,7 +7,7 @@
 
 SceneInputHandler::SceneInputHandler(QObject *parent)
     : QObject(parent)
-    , freeLookMode_(true)
+    , freeLookMode_(false)
     , firstMouseMove_(true)
     , forwardPressed_(false)
     , backwardPressed_(false)
@@ -43,6 +43,10 @@ void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*came
         return;
     }
 
+    if (!freeLookMode_) {
+        return;
+    }
+
     switch (event->key()) {
     case Qt::Key_W:       forwardPressed_  = true; break;
     case Qt::Key_S:       backwardPressed_ = true; break;
@@ -73,9 +77,9 @@ void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*ca
 
 void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
 {
-    if (!freeLookMode_) {
-        return;
-    }
+    // if (!freeLookMode_) {
+    //     return;
+    // }
 
     if (firstMouseMove_) {
         // Skip first move (avoid large jump)

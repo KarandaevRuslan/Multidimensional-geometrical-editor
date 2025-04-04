@@ -47,6 +47,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(MultidimensionalGeometricEditor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        model/opengl/other/axisSystem.h model/opengl/other/axisSystem.cpp
+        tools/numTools.h tools/numTools.cpp
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()
