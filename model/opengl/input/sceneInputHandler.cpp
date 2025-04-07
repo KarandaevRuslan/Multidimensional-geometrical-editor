@@ -77,12 +77,7 @@ void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*ca
 
 void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
 {
-    // if (!freeLookMode_) {
-    //     return;
-    // }
-
     if (firstMouseMove_) {
-        // Skip first move (avoid large jump)
         QCursor::setPos(centerScreenPos_);
         firstMouseMove_ = false;
         return;

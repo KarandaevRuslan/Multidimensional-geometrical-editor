@@ -8,9 +8,9 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
-PresenterMain::PresenterMain(std::shared_ptr<MainWindow> mainWindow,
-              std::shared_ptr<Scene> scene,
-              std::shared_ptr<SceneColorificator> sceneColorificator)
+PresenterMain::PresenterMain(MainWindow* mainWindow,
+              Scene* scene,
+              SceneColorificator* sceneColorificator)
     : mainWindow_(mainWindow), scene_(scene), sceneColorificator_(sceneColorificator)
 {
     mainWindow_->sceneRenderer_->setScene(scene_);
@@ -24,4 +24,9 @@ PresenterMain::PresenterMain(std::shared_ptr<MainWindow> mainWindow,
         mainWindow_->show();
     else
         mainWindow_->showMaximized();
+}
+
+PresenterMain::~PresenterMain(){
+    qDebug() << "Presenter main destroyed";
+    qDebug() << mainWindow_.use_count();
 }

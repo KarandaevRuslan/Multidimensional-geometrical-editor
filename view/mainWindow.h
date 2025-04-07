@@ -19,7 +19,7 @@ public:
      * @param sceneRenderer A pointer to a SceneRenderer widget.
      */
     MainWindow(QWidget* parent = nullptr,
-               std::shared_ptr<SceneRenderer> sceneRenderer = nullptr);
+               SceneRenderer* sceneRenderer = nullptr);
 
     /**
      * @brief Destructor for MainWindow.

@@ -81,6 +81,11 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
 
     /**
+     * @brief Handles mouse release events.
+     */
+    void mouseReleaseEvent(QMouseEvent *event) override;
+
+    /**
      * @brief Handles mouse double-click events.
      */
     void mouseDoubleClickEvent(QMouseEvent* event) override;

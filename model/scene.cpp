@@ -6,6 +6,7 @@
 
 Scene::~Scene() {
     objects_.clear();
+    qDebug() << "Scene cleared";
 }
 
 void Scene::addObject(int id, std::shared_ptr<NDShape> shape,

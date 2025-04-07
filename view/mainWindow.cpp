@@ -5,9 +5,9 @@
 #include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent,
-                       std::shared_ptr<SceneRenderer> sceneRenderer)
+                       SceneRenderer* sceneRenderer)
     : QMainWindow(parent),
-    // ui(new Ui::MainWindow),
+    ui(new Ui::MainWindow),
     sceneRenderer_(sceneRenderer)
 {
     // ui->setupUi(this);
@@ -19,4 +19,5 @@ MainWindow::MainWindow(QWidget *parent,
 MainWindow::~MainWindow()
 {
     delete ui;
+    qDebug() << "Main window destroyed";
 }

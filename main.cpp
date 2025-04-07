@@ -13,7 +13,7 @@
 #include "model/Rotator.h"
 #include "presenterMain.h"
 
-std::shared_ptr<Scene> getTestScene();
+void setupScene(Scene &scene);
 
 int main(int argc, char *argv[])
 {
@@ -58,23 +58,24 @@ int main(int argc, char *argv[])
         qWarning() << "Failed to load configuration. Using defaults.";
     }
 
-    std::shared_ptr<Scene> scene = getTestScene();
-    std::shared_ptr<SceneColorificator> sceneColorificator = std::make_shared<SceneColorificator>();
+    Scene* scene = new Scene();
+    setupScene(*scene);
+
+    SceneColorificator* sceneColorificator = new SceneColorificator();
     sceneColorificator->setColorForObject(2, QColor(160,60,61));
     sceneColorificator->setColorForObject(1, QColor(28,98,15));
 
-    std::shared_ptr<SceneRenderer> sceneRenderer = std::make_shared<SceneRenderer>();
-    std::shared_ptr<MainWindow> mainWindow = std::make_shared<MainWindow>(nullptr, sceneRenderer);
-    PresenterMain* presenterMain = new PresenterMain(
+    SceneRenderer* sceneRenderer = new SceneRenderer();
+    MainWindow* mainWindow = new MainWindow(nullptr, sceneRenderer);
+    PresenterMain presenterMain = PresenterMain(
         mainWindow, scene, sceneColorificator);
     return app.exec();
 }
 
 
 
-std::shared_ptr<Scene> getTestScene() {
+void setupScene(Scene &scene) {
     try {
-        Scene scene;
         scene.setSceneDimension(3);
 
         std::shared_ptr<NDShape> tesseract = std::make_shared<NDShape>(4);
@@ -118,8 +119,6 @@ std::shared_ptr<Scene> getTestScene() {
         }
         Rotator rotatorSimplex(1, 2, 0.3);
         scene.addObject(2, simplex5D, perspectiveProj, {rotatorSimplex}, {3, 3, 3}, {5, 5, 5});
-
-        return std::make_shared<Scene>(scene);
     } catch (const std::exception& ex) {
         qFatal() << "Exception occurred: " << ex.what();
     }

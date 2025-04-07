@@ -20,7 +20,7 @@ SceneRenderer::SceneRenderer(QWidget* parent)
 {
     setFocusPolicy(Qt::StrongFocus);
     setMouseTracking(false);
-    setCursor(Qt::BlankCursor);
+    setCursor(Qt::ArrowCursor);
 
     movementTimer_.setInterval(kCameraUpdateIntervalMs_);
     connect(&movementTimer_, &QTimer::timeout, this, &SceneRenderer::updateCamera);
@@ -29,9 +29,8 @@ SceneRenderer::SceneRenderer(QWidget* parent)
     connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled, this,
             [this](bool enabled)
             {
-                // setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
+                setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
                 setMouseTracking(enabled);
-
             });
 }
 
@@ -47,6 +46,8 @@ SceneRenderer::~SceneRenderer()
         glDeleteTextures(1, &depthMapTex_);
 
     doneCurrent();
+
+    qDebug() << "SceneRenderer is dead";
 }
 
 void SceneRenderer::setScene(std::weak_ptr<Scene> scene)
@@ -137,8 +138,7 @@ void SceneRenderer::initShadowFBO()
 void SceneRenderer::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
-    centerScreenPos_ = mapToGlobal(QPoint(int(w * devicePixelRatio() / 2),
-                                          int(h * devicePixelRatio() / 2)));
+    centerScreenPos_ = mapToGlobal(QPoint(int(w / 2), int(h / 2)));
     inputHandler_->setWidgetCenter(centerScreenPos_);
 }
 
@@ -289,8 +289,15 @@ void SceneRenderer::keyReleaseEvent(QKeyEvent* event)
 
 void SceneRenderer::mouseMoveEvent(QMouseEvent* event)
 {
+    setCursor(Qt::BlankCursor);
     inputHandler_->mouseMoveEvent(event, *cameraController_);
     QOpenGLWidget::mouseMoveEvent(event);
+}
+
+void SceneRenderer::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (inputHandler_->freeLookEnabled()) setCursor(Qt::BlankCursor);
+    else setCursor(Qt::ArrowCursor);
 }
 
 void SceneRenderer::mouseDoubleClickEvent(QMouseEvent* event)

@@ -22,9 +22,10 @@ public:
      * @param scene Shared pointer to the scene model containing geometric data.
      * @param sceneColorificator Shared pointer to the scene colorificator for visual modifications.
      */
-    PresenterMain(std::shared_ptr<MainWindow> mainWindow,
-                  std::shared_ptr<Scene> scene,
-                  std::shared_ptr<SceneColorificator> sceneColorificator);
+    PresenterMain(MainWindow* mainWindow,
+                  Scene* scene,
+                  SceneColorificator* sceneColorificator);
+    ~PresenterMain();
 
 private:
     /// Reference to the main UI window.
