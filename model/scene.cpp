@@ -9,7 +9,8 @@ Scene::~Scene() {
     qDebug() << "Scene cleared";
 }
 
-void Scene::addObject(int id, std::shared_ptr<NDShape> shape,
+void Scene::addObject(int id, QString name,
+                      std::shared_ptr<NDShape> shape,
                       std::shared_ptr<Projection> projection,
                       const std::vector<Rotator>& rotators,
                       const std::vector<double>& scale,
@@ -37,6 +38,7 @@ void Scene::addObject(int id, std::shared_ptr<NDShape> shape,
 
     std::shared_ptr<SceneObject> obj = std::make_shared<SceneObject>();
     obj->id = id;
+    obj->name = name;
     obj->shape = shape;
     obj->projection = projection;
     obj->rotators = rotators;
@@ -69,7 +71,8 @@ std::weak_ptr<SceneObject> Scene::getObject(int id) const
     return std::weak_ptr<SceneObject>(*it);
 }
 
-void Scene::setObject(int id, std::shared_ptr<NDShape> shape,
+void Scene::setObject(int id, QString name,
+                      std::shared_ptr<NDShape> shape,
                       std::shared_ptr<Projection> projection,
                       const std::vector<Rotator>& rotators,
                       const std::vector<double>& scale,
@@ -95,6 +98,7 @@ void Scene::setObject(int id, std::shared_ptr<NDShape> shape,
         throw std::invalid_argument(msg.toStdString());
     }
 
+    (*it)->name = name;
     (*it)->shape = shape;
     (*it)->projection = projection;
     (*it)->rotators = rotators;

@@ -12,7 +12,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools UiT
 
 set(TS_FILES
     MultidimensionalGeometricEditor_en_US.ts
-    MultidimensionalGeometricEditor_en_US.ts
+    MultidimensionalGeometricEditor_ru_RU.ts
 )
 
 set(RESOURCES
@@ -38,17 +38,25 @@ set(PROJECT_SOURCES
     model/opengl/graphics/sceneGeometryManager.cpp model/opengl/graphics/sceneGeometryManager.h
     model/opengl/input/sceneInputHandler.cpp model/opengl/input/sceneInputHandler.h
     model/opengl/objectController/cameraController.cpp model/opengl/objectController/cameraController.h
-    ${TS_FILES}
+    model/opengl/other/axisSystem.h model/opengl/other/axisSystem.cpp
+    tools/numTools.h tools/numTools.cpp
+    view/dataModels/sceneObjectModel.h view/dataModels/sceneObjectModel.cpp
+    view/delegates/sceneObjectDelegate.h view/delegates/sceneObjectDelegate.cpp
+    view/commands/addSceneObjectCommand.h view/commands/addSceneObjectCommand.cpp
+    view/commands/removeSceneObjectCommand.h view/commands/removeSceneObjectCommand.cpp
+    view/mainWindowTabWidget.h view/mainWindowTabWidget.cpp
     ${RESOURCES}
     ${UI_FILES}
 )
+
+# qt_add_translations(MultidimensionalGeometricEditor
+#     TS_FILES ${TS_FILES}
+# )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(MultidimensionalGeometricEditor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        model/opengl/other/axisSystem.h model/opengl/other/axisSystem.cpp
-        tools/numTools.h tools/numTools.cpp
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()

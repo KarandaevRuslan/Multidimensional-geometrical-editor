@@ -162,7 +162,7 @@ void SceneColorificator::removeColorForObject(int objectId) {
 QColor SceneColorificator::getColorForObject(int objectId) const {
     auto it = colorMapping_.find(objectId);
     if (it == colorMapping_.end()) {
-        return QColor(Qt::white);
+        return QColor(SceneColorificator::defaultColor);
     }
     return it->second;
 }
@@ -183,3 +183,5 @@ SceneColorificator::EdgeIterator SceneColorificator::beginEdges(const Scene &sce
 SceneColorificator::EdgeIterator SceneColorificator::endEdges(const Scene &scene) const {
     return ColoredEdgeIterator(&scene, this, scene.getAllObjects().size(), 0);
 }
+
+QColor SceneColorificator::defaultColor = QColor(Qt::white);

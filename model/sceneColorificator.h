@@ -255,6 +255,8 @@ public:
      */
     EdgeIterator endEdges(const Scene& scene) const;
 
+
+    static QColor defaultColor;
 private:
     std::unordered_map<int, QColor> colorMapping_;
 };

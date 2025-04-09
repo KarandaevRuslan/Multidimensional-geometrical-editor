@@ -7,13 +7,8 @@
 #include "tools/configManager.h"
 #include "tools/logger.h"
 #include "view/mainWindow.h"
-#include "model/scene.h"
-#include "model/NDShape.h"
-#include "model/Projection.h"
-#include "model/Rotator.h"
+#include "model/sceneColorificator.h"
 #include "presenterMain.h"
-
-void setupScene(Scene &scene);
 
 int main(int argc, char *argv[])
 {
@@ -52,76 +47,22 @@ int main(int argc, char *argv[])
     }
     qInstallMessageHandler(customMessageHandler);
 
-    // Config
-    ConfigManager &configManager = ConfigManager::instance();
-    if (!configManager.loadConfig("config.json")) {
-        qWarning() << "Failed to load configuration. Using defaults.";
+    {
+        // Config
+        ConfigManager &configManager = ConfigManager::instance();
+        if (!configManager.loadConfig("config.json")) {
+            qWarning() << "Failed to load configuration. Using defaults.";
+            configManager.setValue("sceneObjDefaultColor", "#ffffff");
+
+
+            configManager.saveConfig("config.json");
+        }
+
+        SceneColorificator::defaultColor = QColor(
+            configManager.getValue("sceneObjDefaultColor").toString());
     }
 
-    Scene* scene = new Scene();
-    setupScene(*scene);
-
-    SceneColorificator* sceneColorificator = new SceneColorificator();
-    sceneColorificator->setColorForObject(2, QColor(160,60,61));
-    sceneColorificator->setColorForObject(1, QColor(28,98,15));
-
-    SceneRenderer* sceneRenderer = new SceneRenderer();
-    MainWindow* mainWindow = new MainWindow(nullptr, sceneRenderer);
-    PresenterMain presenterMain = PresenterMain(
-        mainWindow, scene, sceneColorificator);
+    MainWindow* mainWindow = new MainWindow();
+    PresenterMain presenterMain = PresenterMain(mainWindow);
     return app.exec();
 }
-
-
-
-void setupScene(Scene &scene) {
-    try {
-        scene.setSceneDimension(3);
-
-        std::shared_ptr<NDShape> tesseract = std::make_shared<NDShape>(4);
-        std::vector<std::size_t> tesseractVertices;
-        for (int i = 0; i < 16; ++i) {
-            double coord0 = (i & 1) ? 1.0 : -1.0;
-            double coord1 = (i & 2) ? 1.0 : -1.0;
-            double coord2 = (i & 4) ? 1.0 : -1.0;
-            double coord3 = (i & 8) ? 1.0 : -1.0;
-            tesseractVertices.push_back(tesseract->addVertex({coord0, coord1, coord2, coord3}));
-        }
-        for (int i = 0; i < 16; ++i) {
-            for (int j = 0; j < 4; ++j) {
-                int neighbor = i ^ (1 << j);
-                if (i < neighbor) {
-                    tesseract->addEdge(tesseractVertices[i], tesseractVertices[neighbor]);
-                }
-            }
-        }
-        std::shared_ptr<Projection> perspectiveProj = std::make_shared<PerspectiveProjection>(15.0);
-        Rotator rotatorTesseract(0, 1, 0.5);
-        scene.addObject(1, tesseract, perspectiveProj, {rotatorTesseract}, {2, 2, 2}, {});
-
-        std::shared_ptr<NDShape> simplex5D = std::make_shared<NDShape>(5);
-        std::vector<std::size_t> simplexVertices;
-        std::vector<std::vector<double>> coords = {
-            { 1.0,  0.0,  0.0,  0.0,  0.0},
-            { 0.0,  1.0,  0.0,  0.0,  0.0},
-            { 0.0,  0.0,  1.0,  0.0,  0.0},
-            { 0.0,  0.0,  0.0,  1.0,  0.0},
-            { 0.0,  0.0,  0.0,  0.0,  1.0},
-            {-1.0, -1.0, -1.0, -1.0, -1.0}
-        };
-        for (const auto& vertex : coords) {
-            simplexVertices.push_back(simplex5D->addVertex(vertex));
-        }
-        for (size_t i = 0; i < simplexVertices.size(); ++i) {
-            for (size_t j = i + 1; j < simplexVertices.size(); ++j) {
-                simplex5D->addEdge(simplexVertices[i], simplexVertices[j]);
-            }
-        }
-        Rotator rotatorSimplex(1, 2, 0.3);
-        scene.addObject(2, simplex5D, perspectiveProj, {rotatorSimplex}, {3, 3, 3}, {5, 5, 5});
-    } catch (const std::exception& ex) {
-        qFatal() << "Exception occurred: " << ex.what();
-    }
-}
-
-

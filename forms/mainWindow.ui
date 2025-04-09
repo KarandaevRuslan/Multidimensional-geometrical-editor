@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>472</width>
-    <height>371</height>
+    <width>1016</width>
+    <height>631</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -23,25 +23,14 @@
    <string>Geometric Editor</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <widget class="QFrame" name="canvasFrame">
-      <property name="frameShape">
-       <enum>QFrame::Shape::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Shadow::Sunken</enum>
-      </property>
-     </widget>
-    </item>
-   </layout>
+   <layout class="QGridLayout" name="gridLayout"/>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>472</width>
+     <width>1016</width>
      <height>25</height>
     </rect>
    </property>
@@ -59,7 +48,7 @@
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionNew">
    <property name="text">
-    <string>&amp;New</string>
+    <string>&amp;New scene</string>
    </property>
   </action>
   <action name="actionOpen">

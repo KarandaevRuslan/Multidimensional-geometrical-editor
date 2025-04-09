@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <QString>
 #include "NDShape.h"
 #include "Projection.h"
 #include "Rotator.h"
@@ -12,6 +13,7 @@
  *
  * Each scene object includes:
  *  - A mandatory unique integer identifier.
+ *  - A name of object.
  *  - A shared pointer to an NDShape representing the object's geometry.
  *  - An optional Projection strategy (if dimension reduction is needed).
  *  - A list of Rotator objects applied sequentially.
@@ -20,11 +22,12 @@
  */
 struct SceneObject {
     int id;
+    QString name;
     std::shared_ptr<NDShape> shape;
     std::shared_ptr<Projection> projection;
     std::vector<Rotator> rotators;
-    std::vector<double> scale;  // Scale modifier to be applied in scene dimension
-    std::vector<double> offset; // Offset to be applied after scaling
+    std::vector<double> scale;
+    std::vector<double> offset;
 };
 
 /**
@@ -57,6 +60,7 @@ public:
      * @brief Adds a new scene object to the collection.
      *
      * @param id Unique identifier for the object.
+     * @param A name of an object.
      * @param shape A shared pointer to the NDShape associated with the object.
      *              The Scene will share ownership of this shape with the caller.
      * @param projection An optional shared pointer to the Projection strategy.
@@ -66,7 +70,8 @@ public:
      *
      * @throws std::invalid_argument If an object with the given ID already exists or if the scale/offset dimensions do not match the scene dimension.
      */
-    void addObject(int id, std::shared_ptr<NDShape> shape,
+    void addObject(int id, QString name,
+                   std::shared_ptr<NDShape> shape,
                    std::shared_ptr<Projection> projection,
                    const std::vector<Rotator>& rotators,
                    const std::vector<double>& scale,
@@ -95,6 +100,7 @@ public:
      * Replaces the object's NDShape, Projection strategy, list of Rotator objects, scale, and offset.
      *
      * @param id The unique identifier of the object to update.
+     * @param A name of an object.
      * @param shape A shared pointer to the new NDShape. Ownership is shared with the Scene.
      * @param projection A new (optional) shared pointer to a Projection strategy.
      * @param rotators The new list of Rotator transformations.
@@ -103,7 +109,8 @@ public:
      *
      * @throws std::out_of_range If no object with the given ID exists.
      */
-    void setObject(int id, std::shared_ptr<NDShape> shape,
+    void setObject(int id, QString name,
+                   std::shared_ptr<NDShape> shape,
                    std::shared_ptr<Projection> projection,
                    const std::vector<Rotator>& rotators,
                    const std::vector<double>& scale,

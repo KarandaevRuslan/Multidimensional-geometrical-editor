@@ -37,8 +37,8 @@ void SceneInputHandler::setFreeLookEnabled(bool enabled)
 
 void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*camera*/)
 {
-    // Alt+F toggles free-look
-    if ((event->modifiers() & Qt::AltModifier) && event->key() == Qt::Key_F) {
+    // Shift+F toggles free-look
+    if ((event->modifiers() & Qt::ShiftModifier) && event->key() == Qt::Key_F) {
         setFreeLookEnabled(!freeLookMode_);
         return;
     }
