@@ -7,28 +7,32 @@
 AddSceneObjectCommand::AddSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
                                              SceneObject object,
                                              QColor color,
+                                             std::function<void()> updateCallback,
                                              QUndoCommand* parent)
     : QUndoCommand(parent),
     model_(std::move(model)),
     object_(std::move(object)),
-    color_(std::move(color))
+    color_(std::move(color)),
+    updateCallback_(std::move(updateCallback))
 {
     setText(QString("Add object '%1'").arg(object_.name));
 }
 
 AddSceneObjectCommand::AddSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
                                              SceneObject object,
+                                             std::function<void()> updateCallback,
                                              QUndoCommand* parent)
-    : AddSceneObjectCommand(model, object, SceneColorificator::defaultColor, parent)
-{
-
-}
+    : AddSceneObjectCommand(model, object, SceneColorificator::defaultColor, std::move(updateCallback), parent)
+{}
 
 void AddSceneObjectCommand::undo()
 {
     // We only know which row it was appended at if we already did redo() once.
     if (insertedRow_ >= 0) {
         model_->removeSceneObject(insertedRow_);
+        if (updateCallback_) {
+            updateCallback_();
+        }
     }
 }
 
@@ -41,4 +45,7 @@ void AddSceneObjectCommand::redo()
     }
 
     model_->addSceneObject(object_, color_);
+    if (updateCallback_) {
+        updateCallback_();
+    }
 }

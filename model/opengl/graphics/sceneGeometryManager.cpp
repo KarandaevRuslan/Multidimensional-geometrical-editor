@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstddef>
 #include <QPainter>
+#include <QOpenGLWindow>
 #include "../other/axisSystem.h"
 #include "../../../tools/numTools.h"
 
@@ -80,18 +81,16 @@ void SceneGeometryManager::setSceneColorificator(std::weak_ptr<SceneColorificato
     colorificator_ = colorificator;
 }
 
-void SceneGeometryManager::updateGeometry(bool onlySceneObjects)
+void SceneGeometryManager::updateGeometry()
 {
-    if (onlySceneObjects){
-        updatePointsData();
-        updateLinesData();
+    if (!geometryDirty_) {
         return;
     }
 
-    updateAxesData();
-    updateTicksData();
     updatePointsData();
     updateLinesData();
+
+    geometryDirty_ = false;
 }
 
 void SceneGeometryManager::renderAll(QOpenGLShaderProgram* program)
@@ -370,7 +369,7 @@ void SceneGeometryManager::createOrUpdateBuffer(GLuint &vao,
     glBindVertexArray(0);
 }
 
-QPointF SceneGeometryManager::projectToScreen(const QOpenGLWidget *widget,
+QPointF SceneGeometryManager::projectToScreen(const QOpenGLWindow *widget,
                         const QVector3D &point,
                         const QMatrix4x4 &mvp) const
 {
@@ -396,7 +395,7 @@ QPointF SceneGeometryManager::projectToScreen(const QOpenGLWidget *widget,
     return QPointF(sx, sy);
 }
 
-void SceneGeometryManager::paintOverlayLabels(QOpenGLWidget *widget,
+void SceneGeometryManager::paintOverlayLabels(QOpenGLWindow *widget,
                         const QMatrix4x4 &mvp) const
 {
     QPainter painterNumbers(widget);
@@ -446,6 +445,17 @@ void SceneGeometryManager::paintOverlayLabels(QOpenGLWidget *widget,
 void SceneGeometryManager::updateAxes(const QVector3D& cameraPos)
 {
     ::updateAxes(axes_, cameraPos, tickBoxFactor_,  arrowSize_ * 3, origin_);
+    updateAxesData();
+    updateTicksData();
+}
+
+void SceneGeometryManager::markGeometryDirty()
+{
+    geometryDirty_ = true;
+}
+
+bool SceneGeometryManager::isGeometryDirty(){
+    return geometryDirty_;
 }
 
 std::vector<SceneGeometryManager::VertexData>

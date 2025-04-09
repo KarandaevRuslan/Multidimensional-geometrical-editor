@@ -68,9 +68,11 @@ public:
      * @param scale The scale vector to be applied after projection.
      * @param offset The offset vector to be applied after scaling.
      *
-     * @throws std::invalid_argument If an object with the given ID already exists or if the scale/offset dimensions do not match the scene dimension.
+     * @return The id of added object.
+     *
+     * @throws std::invalid_argument If the scale/offset dimensions do not match the scene dimension.
      */
-    void addObject(int id, QString name,
+    int addObject(int id, QString name,
                    std::shared_ptr<NDShape> shape,
                    std::shared_ptr<Projection> projection,
                    const std::vector<Rotator>& rotators,

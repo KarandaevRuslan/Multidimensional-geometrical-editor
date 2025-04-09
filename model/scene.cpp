@@ -5,23 +5,34 @@
 #include <QDebug>
 
 Scene::~Scene() {
-    objects_.clear();
     qDebug() << "Scene cleared";
 }
 
-void Scene::addObject(int id, QString name,
+int Scene::addObject(int id, QString name,
                       std::shared_ptr<NDShape> shape,
                       std::shared_ptr<Projection> projection,
                       const std::vector<Rotator>& rotators,
                       const std::vector<double>& scale,
                       const std::vector<double>& offset)
 {
+    // Check if the ID already exists
     auto it = std::find_if(objects_.begin(), objects_.end(),
                            [id](const std::shared_ptr<SceneObject>& obj) { return obj->id == id; });
+
     if (it != objects_.end()) {
-        QString msg = "An object with the given ID already exists.";
-        qWarning() << msg;
-        throw std::invalid_argument(msg.toStdString());
+        qWarning() << "ID already exists, generating a new unique ID.";
+
+        // Generate new unique ID
+        std::set<int> usedIds;
+        for (const auto& obj : objects_) {
+            usedIds.insert(obj->id);
+        }
+
+        while (usedIds.count(id)) {
+            ++id;
+        }
+
+        qDebug() << "New unique ID assigned:" << id;
     }
 
     // Check that scale and offset dimensions match the scene dimension if provided.
@@ -45,6 +56,8 @@ void Scene::addObject(int id, QString name,
     obj->scale = scale;
     obj->offset = offset;
     objects_.push_back(obj);
+
+    return id;
 }
 
 void Scene::removeObject(int id)

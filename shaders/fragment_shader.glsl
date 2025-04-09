@@ -194,5 +194,6 @@ void main()
     }
 
     vec3 finalColor = uColorBlendFactor * litColorMain + (1.0 - uColorBlendFactor) * litColorShadow * shadow;
+    // vec3 finalColor = vec3(shadow); // debug shadows
     fragColor = vec4(finalColor, 1.0);
 }

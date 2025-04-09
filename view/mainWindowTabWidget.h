@@ -1,7 +1,7 @@
 #ifndef MAIN_WINDOW_TAB_WIDGET_H
 #define MAIN_WINDOW_TAB_WIDGET_H
 
-#include "sceneRenderer.h"
+#include "sceneRendererWidget.h"
 #include "../presenterMain.h"
 #include <QWidget>
 #include <QListView>
@@ -18,8 +18,7 @@ class MainWindowTabWidget : public QWidget
 
 public:
     explicit MainWindowTabWidget(QWidget *parent = nullptr);
-
-    std::weak_ptr<SceneRenderer> sceneRenderer() const;
+    ~MainWindowTabWidget();
 
     void setScene(std::shared_ptr<Scene> scene);
     void setSceneColorificator(std::shared_ptr<SceneColorificator> colorificator);
@@ -32,16 +31,16 @@ public:
 
 private slots:
     void copySelected();
+    void cutSelected();
     void pasteObject();
     void deleteSelected();
     void onListContextMenu(const QPoint &pos);
 
 private:
-    SceneRenderer* sceneRenderer_;
+    SceneRendererWidget* sceneRenderer_;
     QListView* listView_;
     std::unique_ptr<QUndoStack> undoStack_;
 
-    // Shared sub-presenter for this tab.
     std::shared_ptr<PresenterMainTab> presenterMainTab_;
 
     std::shared_ptr<Scene> scene_;

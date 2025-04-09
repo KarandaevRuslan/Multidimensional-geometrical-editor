@@ -40,8 +40,8 @@ PresenterMain::~PresenterMain(){
 }
 
 void PresenterMain::createNewTab() {
-    // Create a new MainWindowTabWidget as a shared_ptr.
-    auto tabWidget = new MainWindowTabWidget(mainWindow_);
+    // Create a new MainWindowTabWidget.
+    auto tabWidget = new MainWindowTabWidget();
 
     // Pass the common scene and colorificator to the tab widget.
     std::shared_ptr<Scene> scene = std::make_shared<Scene>();

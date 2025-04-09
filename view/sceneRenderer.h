@@ -1,5 +1,5 @@
-#ifndef SCENERENDERER_H
-#define SCENERENDERER_H
+#ifndef SCENE_RENDERER_H
+#define SCENE_RENDERER_H
 
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions_3_3_Core>
@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <memory>
 #include <QPen>
+#include <QOpenGLWindow>
 
 #include "../model/scene.h"
 #include "../model/sceneColorificator.h"
@@ -17,18 +18,18 @@ class SceneGeometryManager;
 class SceneInputHandler;
 
 /**
- * @brief High-level widget class that orchestrates rendering, camera, geometry,
+ * @brief High-level widget / window class that orchestrates rendering, camera, geometry,
  *        and user input for a 3D scene with basic shadow mapping.
  */
-class SceneRenderer : public QOpenGLWidget, protected QOpenGLFunctions_3_3_Core
+class SceneRenderer : public QOpenGLWindow, protected QOpenGLFunctions_3_3_Core
 {
     Q_OBJECT
 public:
     /**
      * @brief Constructs the scene renderer.
-     * @param parent Parent widget.
+     * @param parent Parent window.
      */
-    explicit SceneRenderer(QWidget* parent = nullptr);
+    explicit SceneRenderer(QWindow* parent = nullptr);
 
     /**
      * @brief Destructor for cleaning up OpenGL resources.
@@ -46,6 +47,22 @@ public:
      * @param colorificator Weak pointer to a SceneColorificator instance.
      */
     void setSceneColorificator(std::weak_ptr<SceneColorificator> colorificator);
+
+    /**
+     * @brief Expose the input handler.
+     */
+    std::shared_ptr<SceneInputHandler> inputHandler() const { return inputHandler_; }
+
+    /**
+     * @brief Expose the camera controller.
+     */
+    std::shared_ptr<CameraController> cameraController() const { return cameraController_; }
+
+    /**
+     * @brief Updates both the scene geometry and the shadow map.
+     * This should be called when the scene or its shadow map needs updating.
+     */
+    void updateAll();
 
 protected:
     /**
@@ -79,6 +96,11 @@ protected:
      * @brief Handles mouse movement events.
      */
     void mouseMoveEvent(QMouseEvent* event) override;
+
+    /**
+     * @brief Handles mouse press events.
+     */
+    void mousePressEvent(QMouseEvent *event) override;
 
     /**
      * @brief Handles mouse release events.
@@ -144,9 +166,11 @@ private:
     std::unique_ptr<QOpenGLShaderProgram> depthProgram_;
 
     // --- Camera, geometry, input helpers ---
-    std::unique_ptr<CameraController> cameraController_;
+    std::shared_ptr<CameraController> cameraController_;
     std::unique_ptr<SceneGeometryManager> geometryManager_;
-    std::unique_ptr<SceneInputHandler> inputHandler_;
+    std::shared_ptr<SceneInputHandler> inputHandler_;
+
+    bool isUpdateShadowRequired = false;
 
     // --- Shadow map resources ---
     GLuint depthMapFbo_ = 0;
@@ -161,8 +185,8 @@ private:
     GLint depthMvpLoc_         = -1;
 
     // --- Configurable parameters ---
-    int   shadowMapSize_          = 16384;        ///< Resolution of the shadow map.
-    float shadowOrthographicSize_ = 100.0f;       ///< Half-width for orthographic projection.
+    int   shadowMapSize_          = 2048;          ///< Resolution of the shadow map.
+    float shadowOrthographicSize_ = 100.0f;        ///< Half-width for orthographic projection.
     QVector3D shadowLightPos_     = { 30.0f, 25.0f, 35.0f };
     QVector3D shadowLightTarget_  = { 0.0f, 0.0f,  0.0f };
     QVector3D shadowLightUpDir_   = { 0.0f, 1.0f,  0.0f };
@@ -173,14 +197,14 @@ private:
     float     specularStrength_    = 0.5f;
     float     directionalStrength_ = 1.0f;
     float     shadowLightStrength_ = 1.0f;
-    float     colorBlendFactor_    = 0.5f;
+    float     colorBlendFactor_    = 0.55f;
 
     QVector3D ambientColor_        = { 1.0f, 1.0f, 1.0f };
     QVector3D lightColor_          = { 1.0f, 1.0f, 1.0f };
     QVector3D shadowLightColor_    = { 1.0f, 1.0f, 1.0f };
 
     // --- Shadow sampling/PCF parameters ---
-    int       pcfKernelDim_        = 3;
+    int       pcfKernelDim_        = 7;
     float     shadowBiasScale_     = 0.001f;
     float     shadowBiasMin_       = 0.0008f;
 
@@ -201,4 +225,4 @@ private:
     float kClearColorA_ = 1.0f;
 };
 
-#endif // SCENERENDERER_H
+#endif // SCENE_RENDERER_H

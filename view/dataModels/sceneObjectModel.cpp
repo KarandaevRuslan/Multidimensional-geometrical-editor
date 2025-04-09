@@ -112,11 +112,11 @@ void SceneObjectModel::addSceneObject(const SceneObject& obj, const QColor& colo
 
     int row = static_cast<int>(object_ids_.size());
     beginInsertRows(QModelIndex(), row, row);
-    scene->addObject(obj.id, obj.name, obj.shape, obj.projection,
+    int id = scene->addObject(obj.id, obj.name, obj.shape, obj.projection,
                      obj.rotators, obj.scale, obj.offset);
-    object_ids_.push_back(obj.id);
+    object_ids_.push_back(id);
     if (colorificator) {
-        colorificator->setColorForObject(obj.id, color);
+        colorificator->setColorForObject(id, color);
     }
     endInsertRows();
 }

@@ -7,6 +7,7 @@
 #include <QVector3D>
 #include <QPen>
 #include <QFont>
+#include <QOpenGLWindow>
 #include "../../scene.h"
 #include "../../sceneColorificator.h"
 #include "../other/axisSystem.h"
@@ -56,10 +57,9 @@ public:
     void setSceneColorificator(std::weak_ptr<SceneColorificator> colorificator);
 
     /**
-     * @brief Updates all geometry buffers.
-     * @param onlySceneObjects Only updates geometry of scene objects.
+     * @brief Updates main geometry buffers (except ticks and axes).
      */
-    void updateGeometry(bool onlySceneObjects);
+    void updateGeometry();
 
     /**
      * @brief Renders all geometry. Expects the shader to be bound.
@@ -70,13 +70,23 @@ public:
     /**
      * @brief Draws text overlay labels on top of the 3D scene.
      */
-    void paintOverlayLabels(QOpenGLWidget *widget,
+    void paintOverlayLabels(QOpenGLWindow *widget,
                             const QMatrix4x4 &mvp) const;
 
     /**
      * @brief Updates axis lengths and generates tick marks based on camera position.
      */
     void updateAxes(const QVector3D& cameraPos);
+
+    /**
+     * @brief Marks all geometry as needing update.
+     */
+    void markGeometryDirty();
+
+    /**
+     * @brief Returns flag if geometry needs update.
+     */
+    bool isGeometryDirty();
 
 private:
     // Buffer creation helper
@@ -100,7 +110,7 @@ private:
     /**
      * @brief Projects a 3D point to 2D screen coordinates.
      */
-    QPointF projectToScreen(const QOpenGLWidget *widget,
+    QPointF projectToScreen(const QOpenGLWindow *widget,
                             const QVector3D &point,
                             const QMatrix4x4 &mvp) const;
 
@@ -138,6 +148,9 @@ private:
     std::weak_ptr<SceneColorificator> colorificator_;
 
     QList<Axis> axes_;
+
+    // Update geometry flag
+    bool geometryDirty_ = false;
 
     // VAOs / VBOs
     GLuint vaoAxes_ = 0,   vboAxes_ = 0;

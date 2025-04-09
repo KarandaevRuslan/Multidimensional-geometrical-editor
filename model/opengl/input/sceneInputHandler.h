@@ -56,6 +56,18 @@ public:
     void mouseMoveEvent(QMouseEvent* event, CameraController& camera);
 
     /**
+     * @brief Handles mouse press events and updates.
+     * @param event   A pointer to the QMouseEvent.
+     */
+    void mousePressEvent(QMouseEvent* event);
+
+    /**
+     * @brief Handles mouse release events.
+     * @param event   A pointer to the QMouseEvent.
+     */
+    void mouseReleaseEvent(QMouseEvent* event);
+
+    /**
      * @brief Handles mouse double-click events (e.g., toggling free-look on).
      * @param event   A pointer to the QMouseEvent.
      */
@@ -107,6 +119,7 @@ private:
     // Key states
     bool forwardPressed_;
     bool backwardPressed_;
+    bool mouseButtonPressed_;
     bool leftPressed_;
     bool rightPressed_;
     bool upPressed_;

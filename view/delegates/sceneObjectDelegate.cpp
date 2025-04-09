@@ -17,20 +17,35 @@ void SceneObjectDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
     if (option.state & QStyle::State_Selected)
         painter->fillRect(option.rect, option.palette.highlight());
 
-    // Circle geometry
-    int radius = option.rect.height() / 3;
-    QRect circleRect(option.rect.left() + 6, option.rect.center().y() - radius,
-                     2 * radius, 2 * radius);
+    // --- Circle setup ---
+    int radius = option.rect.height() / 4;
+    int circleDiameter = 2 * radius;
+    int circleMargin = 10;
 
-    // Fill color
+    QRect circleRect(option.rect.left() + circleMargin,
+                     option.rect.center().y() - radius,
+                     circleDiameter, circleDiameter);
+
+    // Draw circle
     painter->setBrush(color);
     painter->setPen(outlineColor_);
     painter->drawEllipse(circleRect);
 
-    // Draw name text
-    QRect textRect = option.rect.adjusted(2 * radius + 12, 0, 0, 0);
+    // --- Text setup ---
+    int textLeft = circleRect.right() + circleMargin;
+    int textRight = option.rect.right() - circleMargin;
+    int textWidth = textRight - textLeft;
+
+    QFontMetrics fm(option.font);
+    int nameTextWidth = fm.horizontalAdvance(name);
+    int nameTextHeight = fm.height();
+
+    // Center the text within the available space
+    int textX = textLeft + (textWidth - nameTextWidth) / 2;
+    int textY = option.rect.center().y() + nameTextHeight / 2 - fm.descent();
+
     painter->setPen(option.palette.text().color());
-    painter->drawText(textRect, Qt::AlignVCenter | Qt::AlignLeft, name);
+    painter->drawText(QPoint(textX, textY), name);
 
     painter->restore();
 }
@@ -38,5 +53,5 @@ void SceneObjectDelegate::paint(QPainter* painter, const QStyleOptionViewItem& o
 QSize SceneObjectDelegate::sizeHint(const QStyleOptionViewItem& option,
                                     const QModelIndex& index) const {
     Q_UNUSED(index);
-    return QSize(option.rect.width(), 28);
+    return QSize(-1, 28);
 }

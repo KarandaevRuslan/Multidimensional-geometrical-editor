@@ -57,6 +57,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(MultidimensionalGeometricEditor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
+        view/sceneRendererWidget.h view/sceneRendererWidget.cpp
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 else()

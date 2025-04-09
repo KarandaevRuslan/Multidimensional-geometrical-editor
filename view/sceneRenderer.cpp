@@ -7,31 +7,32 @@
 #include <QPainter>
 #include <QCursor>
 #include <QtMath>
+#include <QOpenGLWindow>
 
 #include "../model/opengl/objectController/cameraController.h"
 #include "../model/opengl/graphics/sceneGeometryManager.h"
 #include "../model/opengl/input/sceneInputHandler.h"
 
-SceneRenderer::SceneRenderer(QWidget* parent)
-    : QOpenGLWidget(parent)
-    , cameraController_(std::make_unique<CameraController>())
+SceneRenderer::SceneRenderer(QWindow* parent)
+    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent)
+    , cameraController_(std::make_shared<CameraController>())
     , geometryManager_(std::make_unique<SceneGeometryManager>())
-    , inputHandler_(std::make_unique<SceneInputHandler>())
+    , inputHandler_(std::make_shared<SceneInputHandler>())
 {
-    setFocusPolicy(Qt::StrongFocus);
-    setMouseTracking(false);
-    setCursor(Qt::ArrowCursor);
-
     movementTimer_.setInterval(kCameraUpdateIntervalMs_);
     connect(&movementTimer_, &QTimer::timeout, this, &SceneRenderer::updateCamera);
     movementTimer_.start();
 
-    connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled, this,
-            [this](bool enabled)
+    setCursor(Qt::ArrowCursor);
+
+    if (inputHandler_)
+    {
+        connect(inputHandler_.get(), &SceneInputHandler::freeLookModeToggled,
+            this, [this](bool enabled)
             {
                 setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
-                setMouseTracking(enabled);
             });
+    }
 }
 
 SceneRenderer::~SceneRenderer()
@@ -53,13 +54,13 @@ SceneRenderer::~SceneRenderer()
 void SceneRenderer::setScene(std::weak_ptr<Scene> scene)
 {
     geometryManager_->setScene(scene);
-    update();
+    updateAll();
 }
 
 void SceneRenderer::setSceneColorificator(std::weak_ptr<SceneColorificator> colorificator)
 {
     geometryManager_->setSceneColorificator(colorificator);
-    update();
+    geometryManager_->markGeometryDirty();
 }
 
 void SceneRenderer::initializeGL()
@@ -70,6 +71,7 @@ void SceneRenderer::initializeGL()
     glDisable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
+    glEnable(GL_MULTISAMPLE);
     glClearColor(kClearColorR_, kClearColorG_, kClearColorB_, kClearColorA_);
 
     setupMainProgram();
@@ -77,9 +79,6 @@ void SceneRenderer::initializeGL()
     initShadowFBO();
 
     geometryManager_->initialize();
-
-    // Prerender scene shadow map
-    renderShadowPass();
 
 }
 
@@ -144,7 +143,11 @@ void SceneRenderer::resizeGL(int w, int h)
 
 void SceneRenderer::paintGL()
 {
-    // renderShadowPass();
+    if (isUpdateShadowRequired)
+    {
+        renderShadowPass();
+        isUpdateShadowRequired = false;
+    }
     renderScenePass();
 }
 
@@ -162,7 +165,7 @@ void SceneRenderer::renderShadowPass()
     QMatrix4x4 lightSpace = buildLightSpaceMatrix();
     depthProgram_->setUniformValue(depthMvpLoc_, lightSpace);
 
-    geometryManager_->updateGeometry(true);
+    geometryManager_->updateGeometry();
     geometryManager_->renderAll(depthProgram_.get());
 
     depthProgram_->release();
@@ -178,12 +181,15 @@ void SceneRenderer::renderScenePass()
                static_cast<GLsizei>(height() * devicePixelRatio()));
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
 
     // Draw ovelay numbers
     QMatrix4x4 mvp = buildMvpMatrix();
     geometryManager_->updateAxes(cameraController_->position());
     geometryManager_->paintOverlayLabels(this, mvp);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
+
 
     program_->bind();
 
@@ -238,7 +244,7 @@ void SceneRenderer::renderScenePass()
     glBindTexture(GL_TEXTURE_2D, depthMapTex_);
     program_->setUniformValue(shadowMapLoc_, 0);
 
-    geometryManager_->updateGeometry(false);
+    geometryManager_->updateGeometry();
     geometryManager_->renderAll(program_.get());
 
     program_->release();
@@ -275,45 +281,70 @@ QMatrix4x4 SceneRenderer::buildMvpMatrix() const
     return projection * view;
 }
 
-void SceneRenderer::keyPressEvent(QKeyEvent* event)
-{
-    inputHandler_->keyPressEvent(event, *cameraController_);
-    QOpenGLWidget::keyPressEvent(event);
-}
-
-void SceneRenderer::keyReleaseEvent(QKeyEvent* event)
-{
-    inputHandler_->keyReleaseEvent(event, *cameraController_);
-    QOpenGLWidget::keyReleaseEvent(event);
-}
-
-void SceneRenderer::mouseMoveEvent(QMouseEvent* event)
-{
-    setCursor(Qt::BlankCursor);
-    inputHandler_->mouseMoveEvent(event, *cameraController_);
-    QOpenGLWidget::mouseMoveEvent(event);
-}
-
-void SceneRenderer::mouseReleaseEvent(QMouseEvent *event)
-{
-    if (inputHandler_->freeLookEnabled()) setCursor(Qt::BlankCursor);
-    else setCursor(Qt::ArrowCursor);
-}
-
-void SceneRenderer::mouseDoubleClickEvent(QMouseEvent* event)
-{
-    inputHandler_->mouseDoubleClickEvent(event);
-    QOpenGLWidget::mouseDoubleClickEvent(event);
-}
-
-void SceneRenderer::wheelEvent(QWheelEvent* event)
-{
-    inputHandler_->wheelEvent(event, *cameraController_);
-    QOpenGLWidget::wheelEvent(event);
-}
-
 void SceneRenderer::updateCamera()
 {
     inputHandler_->updateCamera(*cameraController_);
     update();
 }
+
+
+void SceneRenderer::updateAll() {
+    if (geometryManager_) {
+        geometryManager_->markGeometryDirty();
+        isUpdateShadowRequired = true;
+    }
+}
+
+void SceneRenderer::keyPressEvent(QKeyEvent* event)
+{
+    if (inputHandler_ && cameraController_)
+        inputHandler_->keyPressEvent(event, *cameraController_);
+    QOpenGLWindow::keyPressEvent(event);
+}
+
+void SceneRenderer::keyReleaseEvent(QKeyEvent* event)
+{
+    if (inputHandler_ && cameraController_)
+        inputHandler_->keyReleaseEvent(event, *cameraController_);
+    QOpenGLWindow::keyReleaseEvent(event);
+}
+
+void SceneRenderer::mouseMoveEvent(QMouseEvent* event)
+{
+    // In our event filter we already check freeLook mode.
+    if (inputHandler_ && cameraController_)
+        inputHandler_->mouseMoveEvent(event, *cameraController_);
+    QOpenGLWindow::mouseMoveEvent(event);
+}
+
+void SceneRenderer::mousePressEvent(QMouseEvent* event)
+{
+    setCursor(Qt::BlankCursor);
+    inputHandler_->mousePressEvent(event);
+    QOpenGLWindow::mousePressEvent(event);
+}
+
+void SceneRenderer::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (inputHandler_ && inputHandler_->freeLookEnabled())
+        setCursor(Qt::BlankCursor);
+    else
+        setCursor(Qt::ArrowCursor);
+    inputHandler_->mouseReleaseEvent(event);
+    QOpenGLWindow::mouseReleaseEvent(event);
+}
+
+void SceneRenderer::mouseDoubleClickEvent(QMouseEvent* event)
+{
+    if (inputHandler_ && cameraController_)
+        inputHandler_->mouseDoubleClickEvent(event);
+    QOpenGLWindow::mouseDoubleClickEvent(event);
+}
+
+void SceneRenderer::wheelEvent(QWheelEvent* event)
+{
+    if (inputHandler_ && cameraController_)
+        inputHandler_->wheelEvent(event, *cameraController_);
+    QOpenGLWindow::wheelEvent(event);
+}
+

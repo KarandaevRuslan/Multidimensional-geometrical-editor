@@ -23,15 +23,18 @@ public:
      * @param model A shared pointer to the SceneObjectModel where the object will be added.
      * @param object The SceneObject to be added.
      * @param color The color to associate with the object.
+     * @param updateCallback A delegate to be called after undo/redo for UI updates.
      * @param parent Optional parent command to allow for command grouping.
      */
     AddSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
                           SceneObject object,
                           QColor color,
+                          std::function<void()> updateCallback,
                           QUndoCommand* parent = nullptr);
 
     AddSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
                           SceneObject object,
+                          std::function<void()> updateCallback,
                           QUndoCommand* parent = nullptr);
 
 
@@ -55,6 +58,8 @@ private:
     SceneObject object_;                        ///< The scene object to add.
     QColor color_;                              ///< The color assigned to the object.
     int insertedRow_ = -1;                      ///< The row index at which the object is inserted.
+
+    std::function<void()> updateCallback_;
 };
 
 #endif // ADD_SCENEOBJECT_COMMAND_H

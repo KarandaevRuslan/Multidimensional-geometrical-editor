@@ -20,10 +20,12 @@ public:
      *
      * @param model A shared pointer to the SceneObjectModel from which the object will be removed.
      * @param row The row index of the object to remove.
+     * @param updateCallback A delegate to be called after undo/redo for UI updates.
      * @param parent Optional parent command to group commands.
      */
     RemoveSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
                              int row,
+                             std::function<void()> updateCallback,
                              QUndoCommand* parent = nullptr);
 
     /**
@@ -46,6 +48,8 @@ private:
     SceneObject objectSnapshot_;               ///< Snapshot of the scene object (captured before removal).
     QColor colorSnapshot_;                     ///< Snapshot of the associated color.
     bool valid_ = false;                       ///< Flag indicating if the snapshot is valid.
+
+    std::function<void()> updateCallback_;
 };
 
 #endif // REMOVE_SCENE_OBJECT_COMMAND_H

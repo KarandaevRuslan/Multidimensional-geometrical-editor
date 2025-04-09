@@ -3,6 +3,7 @@
 #include <QScreen>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QOpenGLWindow>
 
 #include "tools/configManager.h"
 #include "tools/logger.h"
@@ -21,20 +22,16 @@ int main(int argc, char *argv[])
     parser.setApplicationDescription(QCoreApplication::applicationName());
     parser.addHelpOption();
     parser.addVersionOption();
-    QCommandLineOption multipleSampleOption("multisample", "Multisampling");
-    parser.addOption(multipleSampleOption);
     QCommandLineOption coreProfileOption("coreprofile", "Use core profile");
     parser.addOption(coreProfileOption);
-    QCommandLineOption transparentOption("transparent", "Transparent window");
-    parser.addOption(transparentOption);
 
     parser.process(app);
 
     // Adjusting opengl
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
-    if (parser.isSet(multipleSampleOption))
-        fmt.setSamples(4);
+    fmt.setStencilBufferSize(8);
+    fmt.setSamples(16);
     if (parser.isSet(coreProfileOption)) {
         fmt.setVersion(3, 3);
         fmt.setProfile(QSurfaceFormat::CoreProfile);
@@ -62,7 +59,9 @@ int main(int argc, char *argv[])
             configManager.getValue("sceneObjDefaultColor").toString());
     }
 
-    MainWindow* mainWindow = new MainWindow();
-    PresenterMain presenterMain = PresenterMain(mainWindow);
-    return app.exec();
+    MainWindow mainWindow = MainWindow();
+    PresenterMain presenterMain = PresenterMain(&mainWindow);
+
+    int ret = app.exec();
+    return ret;
 }

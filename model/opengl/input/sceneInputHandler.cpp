@@ -11,6 +11,7 @@ SceneInputHandler::SceneInputHandler(QObject *parent)
     , firstMouseMove_(true)
     , forwardPressed_(false)
     , backwardPressed_(false)
+    , mouseButtonPressed_(false)
     , leftPressed_(false)
     , rightPressed_(false)
     , upPressed_(false)
@@ -77,6 +78,10 @@ void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*ca
 
 void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
 {
+    if (!freeLookMode_ && !mouseButtonPressed_) {
+        return;
+    }
+
     if (firstMouseMove_) {
         QCursor::setPos(centerScreenPos_);
         firstMouseMove_ = false;
@@ -101,11 +106,35 @@ void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
     QCursor::setPos(centerScreenPos_);
 }
 
+void SceneInputHandler::mousePressEvent(QMouseEvent* event)
+{
+    if (freeLookMode_) {
+        return;
+    }
+
+    if (event->button() == Qt::LeftButton){
+        mouseButtonPressed_ = true;
+    }
+}
+
+void SceneInputHandler::mouseReleaseEvent(QMouseEvent* event)
+{
+    if (freeLookMode_) {
+        return;
+    }
+
+    if (event->button() == Qt::LeftButton){
+        mouseButtonPressed_ = false;
+    }
+    QCursor::setPos(centerScreenPos_);
+}
+
 void SceneInputHandler::mouseDoubleClickEvent(QMouseEvent* event)
 {
     // Double-click left button to enable free look
     if (event->button() == Qt::LeftButton && !freeLookMode_) {
         setFreeLookEnabled(true);
+        mouseButtonPressed_ = false;
     }
 }
 
