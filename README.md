@@ -45,31 +45,31 @@ Difficulty: Hard
 Develop a module for composing several objects with specified rotation and perspective on one scene.  
 Difficulty: Medium
 
-### Sprint 4. Figure Editing Functionality
-* Task 4.1: Create the editing interface  
-Develop a module that provides an interface for input commands, allowing the user to modify figure parameters.  
-Difficulty: Medium
+### Sprint 4. Figure displaying functionality
+* Task 4.1: Create shaders  
+Write vector and fragment shaders and the same for shadow map.  
+Difficulty: Hard
 
-* Task 4.2: Functions for updating figure data  
-Implement functions that update the internal representation of the figure in real time as parameters are modified via the editing interface.  
-Difficulty: Medium
+* Task 4.2: Camera movement module  
+Implement functions module for camera (First person view) control via keyboard and mouse.  
+Difficulty: Hard
 
 * Task 4.3: Integrate 3D projection visualization  
 Develop a module to render the computed 3D projection within the application window.  
+Difficulty: HELLISHLY HARD
+
+### Sprint 5. Making user ui
+* Task 5.1: Create tab system  
+Add tabs widget to main window, and create custom tabs module for adding custom tab to it.  
 Difficulty: Medium
 
-### Sprint 5. Generating Random n-Dimensional Figures
-* Task 5.1: Develop the random figure generation function  
-Write a function generate_random_shape(n) that generates a random n-dimensional figure considering the constraints (3 < n < 11), using random number generators and vertex distribution algorithms.  
-Difficulty: Medium
+* Task 5.2: Implement cut / copy / paste / delete / undo / redo system  
+Add possibility to revert, repeat changes; add basic editing options.  
+Difficulty: Hard
 
-* Task 5.2: Integrate the generator into the application  
-Implement a module that allows the user to trigger the generation of a random figure via the interface and immediately pass it to the visualization module.  
-Difficulty: Medium
-
-* Task 5.3: Test the random figure generator  
-Write tests to ensure that the generation function returns valid and diverse figures that meet the specified conditions.  
-Difficulty: Low
+* Task 5.3: Add scene object editor  
+Add editor widget for changing selected object on scene. There should be features like change name, color, rotation, projection, scale, offset, change vertices, change edges.  
+Difficulty: Hard
 
 ### Sprint 6. Saving and Loading Figures to/from the File System
 * Task 6.1: Serialize the figure into JSON/XML  
