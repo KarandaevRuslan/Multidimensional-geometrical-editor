@@ -67,22 +67,22 @@ Difficulty: Medium
 Add possibility to revert, repeat changes; add basic editing options.  
 Difficulty: Hard
 
-* Task 5.3: Add scene object editor  
-Add editor widget for changing selected object on scene. There should be features like change name, color, rotation, projection, scale, offset, change vertices, change edges.  
+* Task 5.3: Add scene object editor. Part 1  
+Add editor widget for changing selected object on scene. There should be features like change name, color, rotation, projection, scale, offset.  
 Difficulty: Hard
 
 ### Sprint 6. Saving and Loading Figures to/from the File System
 * Task 6.1: Serialize the figure into JSON/XML  
 Write functions that convert the figure object (NDShape) into a JSON or XML string for saving purposes.  
-Difficulty: Medium
+Difficulty: Easy
 
 * Task 6.2: Implement file save and load functions  
 Develop code for writing the serialized string to a file and reading it back with proper deserialization into a figure object.  
-Difficulty: Medium
+Difficulty: Easy
 
-* Task 6.3: Exception handling for file operations  
-Add error handling in the save/load modules using try-catch constructs.  
-Difficulty: Low
+* Task 6.3: Add scene object editor. Part 2   
+Add to editor widget shape edititng (dimension, vertices, edges).  
+Difficulty: Hard
 
 ### Sprint 7. Module Integration, Testing, and Optimization
 * Task 7.1: Integrate all modules into a cohesive application  
