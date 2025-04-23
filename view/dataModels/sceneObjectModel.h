@@ -129,7 +129,10 @@ public:
      */
     void setSceneColorificator(std::weak_ptr<SceneColorificator> colorificator);
 
+    /// return the row index for the given object id, or -1 if not found
+    int rowForId(int objectId) const;
 
+    Q_INVOKABLE void debugPrintAll() const;
 private:
     std::weak_ptr<Scene> scene_;                           ///< Weak pointer to the Scene.
     std::weak_ptr<SceneColorificator> colorificator_;        ///< Weak pointer to the color manager.

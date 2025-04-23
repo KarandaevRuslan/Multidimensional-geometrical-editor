@@ -28,6 +28,9 @@ struct SceneObject {
     std::vector<Rotator> rotators;
     std::vector<double> scale;
     std::vector<double> offset;
+
+    // Makes an object copy. Leaves id and name the same.
+    SceneObject clone();
 };
 
 /**
@@ -125,6 +128,7 @@ public:
      */
     std::vector<std::weak_ptr<SceneObject>> getAllObjects() const;
 
+    static ConvertedData convertObject(const SceneObject& obj, int sceneDimension);
     /**
      * @brief Converts the NDShape for the scene object identified by the given id.
      *

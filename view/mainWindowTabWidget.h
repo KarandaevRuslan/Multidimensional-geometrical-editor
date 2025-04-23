@@ -1,6 +1,7 @@
 #ifndef MAIN_WINDOW_TAB_WIDGET_H
 #define MAIN_WINDOW_TAB_WIDGET_H
 
+#include "sceneObjectEditorWidget.h"
 #include "sceneRendererWidget.h"
 #include "../presenterMain.h"
 #include <QWidget>
@@ -35,10 +36,12 @@ private slots:
     void pasteObject();
     void deleteSelected();
     void onListContextMenu(const QPoint &pos);
+    void onCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
 
 private:
     SceneRendererWidget* sceneRenderer_;
     QListView* listView_;
+    SceneObjectEditorWidget*  editor_;
     std::unique_ptr<QUndoStack> undoStack_;
 
     std::shared_ptr<PresenterMainTab> presenterMainTab_;
@@ -50,6 +53,8 @@ private:
 
     // Shared delegate injected from PresenterMain.
     std::shared_ptr<class SceneObjectDelegate> delegate_;
+
+    QMap<QString, QAction*> actions_;
 };
 
 #endif // MAIN_WINDOW_TAB_WIDGET_H

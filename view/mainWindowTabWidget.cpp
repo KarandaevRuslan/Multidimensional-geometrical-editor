@@ -1,4 +1,6 @@
 #include "mainWindowTabWidget.h"
+#include "commands/changeSceneObjectCommand.h"
+#include "sceneObjectEditorWidget.h"
 #include "commands/addSceneObjectCommand.h"
 #include "commands/removeSceneObjectCommand.h"
 #include <QSplitter>
@@ -41,6 +43,24 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     // ------------------ Right side ------------------
     QWidget* rightWidget = new QWidget(splitter);
     QVBoxLayout* rightLayout = new QVBoxLayout(rightWidget);
+    editor_ = new SceneObjectEditorWidget(rightWidget);
+    // ——— editor → undo stack + render refresh ———
+    connect(editor_, &SceneObjectEditorWidget::objectEdited,
+            this,[this](const SceneObject &upd,const QColor &col,bool geomChanged){
+                const QModelIndex idx = listView_->currentIndex();
+                if(!idx.isValid()) return;
+
+                undoStack_->push(new ChangeSceneObjectCommand(
+                    model_, idx.row(), upd, col,
+                    [this, geomChanged]{
+                        if(geomChanged) sceneRenderer_->updateAll();
+                    },
+                    [this]{
+                        editor_->rebuildUiFromCurrent();
+                    }));
+            });
+
+    rightLayout->addWidget(editor_);
     rightWidget->setLayout(rightLayout);
 
     // Put our three child widgets in the splitter:
@@ -63,32 +83,28 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     mainLayout->addWidget(splitter);
     setLayout(mainLayout);
 
-    // -------------- Setup standard shortcuts --------------
-    auto undoShortcut = new QShortcut(QKeySequence::Undo, this);
-    connect(undoShortcut, &QShortcut::activated, this, [this]() {
-        undoStack_->undo();
-    });
+    // --------- Create actions and shortcuts ----------
+    auto makeAction = [this](const QString& name, const QString& text, const QKeySequence& shortcut, auto slot, auto target) {
+        QAction* act = new QAction(text, this);
+        act->setShortcut(shortcut);
+        act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+        connect(act, &QAction::triggered, this, slot);\
+        target->addAction(act); // Registers shortcut
+        actions_[name] = act;
+    };
 
-    auto redoShortcut = new QShortcut(QKeySequence::Redo, this);
-    connect(redoShortcut, &QShortcut::activated, this, [this]() {
-        undoStack_->redo();
-    });
-
-    auto copyShortcut = new QShortcut(QKeySequence::Copy, this);
-    connect(copyShortcut, &QShortcut::activated, this, &MainWindowTabWidget::copySelected);
-
-    auto cutShortcut = new QShortcut(QKeySequence::Cut, this);
-    connect(cutShortcut, &QShortcut::activated, this, &MainWindowTabWidget::cutSelected);
-
-    auto pasteShortcut = new QShortcut(QKeySequence::Paste, this);
-    connect(pasteShortcut, &QShortcut::activated, this, &MainWindowTabWidget::pasteObject);
-
-    auto deleteShortcut = new QShortcut(QKeySequence::Delete, this);
-    connect(deleteShortcut, &QShortcut::activated, this, &MainWindowTabWidget::deleteSelected);
+    makeAction("undo",   tr("Undo"),    QKeySequence::Undo,    [this]{ undoStack_->undo(); }, this);
+    makeAction("redo",   tr("Redo"),    QKeySequence::Redo,    [this]{ undoStack_->redo(); }, this);
+    makeAction("copy",   tr("Copy"),    QKeySequence::Copy,    &MainWindowTabWidget::copySelected, listView_);
+    makeAction("cut",    tr("Cut"),     QKeySequence::Cut,     &MainWindowTabWidget::cutSelected, listView_);
+    makeAction("paste",  tr("Paste"),   QKeySequence::Paste,   &MainWindowTabWidget::pasteObject, listView_);
+    makeAction("delete", tr("Delete"),  QKeySequence::Delete,  &MainWindowTabWidget::deleteSelected, listView_);
 
     // Model is created but will be assigned scene/colorificator later:
     model_ = std::make_shared<SceneObjectModel>(scene_, sceneColorificator_, this);
     listView_->setModel(model_.get());
+    connect(listView_->selectionModel(), &QItemSelectionModel::currentChanged,
+            this, &MainWindowTabWidget::onCurrentRowChanged);
 }
 
 MainWindowTabWidget::~MainWindowTabWidget(){
@@ -98,29 +114,15 @@ MainWindowTabWidget::~MainWindowTabWidget(){
 // Provide a simple context menu (right-click) for the list view:
 void MainWindowTabWidget::onListContextMenu(const QPoint &pos)
 {
-    QMenu contextMenu;
-    QAction* cutAct = contextMenu.addAction(tr("Cut"));
-    QAction* copyAct = contextMenu.addAction(tr("Copy"));
-    QAction* pasteAct = contextMenu.addAction(tr("Paste"));
-    QAction* deleteAct = contextMenu.addAction(tr("Delete"));
+    QMenu contextMenu(this);
 
-    QAction* selectedAct = contextMenu.exec(listView_->viewport()->mapToGlobal(pos));
-    if (!selectedAct) return;
+    contextMenu.addAction(actions_["cut"]);
+    contextMenu.addAction(actions_["copy"]);
+    contextMenu.addAction(actions_["paste"]);
+    contextMenu.addAction(actions_["delete"]);
 
-    if (selectedAct == cutAct) {
-        cutSelected();
-    }
-    else if (selectedAct == copyAct) {
-        copySelected();
-    }
-    else if (selectedAct == pasteAct) {
-        pasteObject();
-    }
-    else if (selectedAct == deleteAct) {
-        deleteSelected();
-    }
+    contextMenu.exec(listView_->viewport()->mapToGlobal(pos));
 }
-
 
 void MainWindowTabWidget::setScene(std::shared_ptr<Scene> scene) {
     scene_ = scene;
@@ -156,6 +158,8 @@ void MainWindowTabWidget::setPresenterMainTab(const std::shared_ptr<PresenterMai
 // -------------- Copy / Cut / Paste / Delete logic --------------
 void MainWindowTabWidget::copySelected()
 {
+    qDebug() << "Shortcut triggered. Focus is on:" << QApplication::focusWidget();
+
     if (!model_) return;
     auto index = listView_->currentIndex();
     if (!index.isValid()) return;
@@ -169,7 +173,7 @@ void MainWindowTabWidget::copySelected()
     if (presenterMainTab_) {
         auto parent = presenterMainTab_->getParentPresenter();
         if (parent) {
-            *(parent->copyBuffer_) = *objPtr;
+            *(parent->copyBuffer_) = objPtr->clone();
             *(parent->copyColor_) = colorVar.isValid() ? colorVar.value<QColor>() : QColor(SceneColorificator::defaultColor);
         }
     }
@@ -193,7 +197,7 @@ void MainWindowTabWidget::pasteObject()
         auto parent = presenterMainTab_->getParentPresenter();
         if (parent && !parent->copyBuffer_->name.isEmpty()) {
             // Create a new object based on the shared clipboard.
-            SceneObject newObj = *(parent->copyBuffer_);
+            SceneObject newObj = parent->copyBuffer_->clone();
             newObj.name += " - " + tr("Copy");
 
             auto cmd = new AddSceneObjectCommand(
@@ -219,4 +223,19 @@ void MainWindowTabWidget::deleteSelected()
         [this]() { sceneRenderer_->updateAll(); }
         );
     undoStack_->push(cmd);
+}
+
+void MainWindowTabWidget::onCurrentRowChanged(const QModelIndex &current,
+                                              const QModelIndex &previous)
+{
+    qDebug() << current;
+    if (!current.isValid()) { editor_->clear(); return; }
+
+    std::shared_ptr<SceneObject> obj = model_->getObjectByRow(current.row());
+
+    editor_->setObject(obj,
+    [this, obj]() {
+        QColor col = sceneColorificator_->getColorForObject(obj->id);
+        return col;
+    });
 }

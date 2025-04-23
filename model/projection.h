@@ -2,6 +2,7 @@
 #define PROJECTION_H
 
 #include "NDShape.h"
+#include <memory>
 #include <vector>
 
 /**
@@ -38,6 +39,9 @@ public:
      * @throws std::invalid_argument If targetDim = 0.
      */
     NDShape projectShapeToDimension(const NDShape& shape, std::size_t targetDim) const;
+
+    virtual std::shared_ptr<Projection> clone() const = 0;
+
 };
 
 /**
@@ -63,6 +67,11 @@ public:
      */
     std::vector<double> projectPoint(const std::vector<double>& point) const override;
 
+    std::shared_ptr<Projection> clone() const override;
+
+    double getDistance(){ return d_; }
+
+
 private:
     double d_;
 };
@@ -74,6 +83,8 @@ class OrthographicProjection : public Projection {
 public:
     OrthographicProjection() = default;
     std::vector<double> projectPoint(const std::vector<double>& point) const override;
+
+    std::shared_ptr<Projection> clone() const override;
 };
 
 /**
@@ -83,6 +94,9 @@ class StereographicProjection : public Projection {
 public:
     StereographicProjection() = default;
     std::vector<double> projectPoint(const std::vector<double>& point) const override;
+
+    std::shared_ptr<Projection> clone() const override;
+
 };
 
 #endif // PROJECTION_H

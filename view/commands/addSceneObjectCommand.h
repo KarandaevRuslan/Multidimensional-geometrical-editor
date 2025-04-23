@@ -58,6 +58,7 @@ private:
     SceneObject object_;                        ///< The scene object to add.
     QColor color_;                              ///< The color assigned to the object.
     int insertedRow_ = -1;                      ///< The row index at which the object is inserted.
+    int insertedId_ = -1;
 
     std::function<void()> updateCallback_;
 };

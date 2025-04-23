@@ -1,5 +1,7 @@
 #include "sceneObjectModel.h"
 
+#include <QListView>
+
 SceneObjectModel::SceneObjectModel(std::weak_ptr<Scene> scene,
                                    std::weak_ptr<SceneColorificator> colorificator,
                                    QObject* parent)
@@ -103,6 +105,11 @@ void SceneObjectModel::refresh() {
         }
     }
     endResetModel();
+
+    // ensure a valid current index exists
+    if (QListView *lv = qobject_cast<QListView*>(parent()))
+        if (rowCount() > 0)
+            lv->setCurrentIndex(index(0,0));
 }
 
 void SceneObjectModel::addSceneObject(const SceneObject& obj, const QColor& color) {
@@ -160,4 +167,25 @@ void SceneObjectModel::setSceneColorificator(std::weak_ptr<SceneColorificator> c
     colorificator_ = std::move(colorificator);
     // Optionally, you can emit dataChanged for color updates if needed
     emit dataChanged(index(0), index(rowCount() - 1), { ColorRole });
+}
+
+int SceneObjectModel::rowForId(int objectId) const {
+    auto it = std::find(object_ids_.begin(), object_ids_.end(), objectId);
+    return (it == object_ids_.end())
+               ? -1
+               : static_cast<int>(std::distance(object_ids_.begin(), it));
+}
+
+void SceneObjectModel::debugPrintAll() const {
+    auto colorificator = colorificator_.lock();
+
+    qDebug() << "---- SceneObjectModel: all IDs + colors ----";
+    for (int id : object_ids_) {
+        QColor col = colorificator->getColorForObject(id);
+        qDebug()
+            << "  ID =" << id
+            << ", color =" << col.name()  // prints as “#RRGGBB”
+            ;
+    }
+    qDebug() << "---------------------------------------------";
 }

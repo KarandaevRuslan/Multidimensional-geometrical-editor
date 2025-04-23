@@ -9,6 +9,8 @@ SceneObjectDelegate::SceneObjectDelegate(QObject* parent)
 void SceneObjectDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option,
                                 const QModelIndex& index) const {
     painter->save();
+    painter->setRenderHint(QPainter::Antialiasing,       true);
+    painter->setRenderHint(QPainter::TextAntialiasing,   true);
 
     QString name = index.data(SceneObjectModel::NameRole).toString();
     QColor color = index.data(SceneObjectModel::ColorRole).value<QColor>();

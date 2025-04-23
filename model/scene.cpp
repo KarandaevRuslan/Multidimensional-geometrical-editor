@@ -3,6 +3,18 @@
 #include <stdexcept>
 #include <QString>
 #include <QDebug>
+#include "projection.h"
+
+SceneObject SceneObject::clone(){
+    SceneObject sceneObjCopy = *this;
+    if (shape) {
+        sceneObjCopy.shape = std::make_shared<NDShape>(*shape);
+    }
+    if (projection) {
+        sceneObjCopy.projection = projection->clone();
+    }
+    return sceneObjCopy;
+}
 
 Scene::~Scene() {
     qDebug() << "Scene cleared";
@@ -128,29 +140,23 @@ std::vector<std::weak_ptr<SceneObject>> Scene::getAllObjects() const
     return weakObjects;
 }
 
-ConvertedData Scene::convertObject(int id) const
+ConvertedData Scene::convertObject(const SceneObject& obj, int sceneDimension)
 {
-    auto sp = getObject(id).lock();
-    if (!sp) {
-        QString msg = "No object found with the given ID.";
-        qWarning() << msg;
-        throw std::out_of_range(msg.toStdString());
-    }
     ConvertedData data;
-    data.objectId = sp->id;
+    data.objectId = obj.id;
 
     // 1. Start with the original shape.
-    NDShape transformed = *(sp->shape);
+    NDShape transformed = *(obj.shape);
 
     // 2. Apply rotations in sequence.
-    for (const auto &rotator : sp->rotators) {
+    for (const auto &rotator : obj.rotators) {
         transformed = rotator.applyRotation(transformed);
     }
 
     // 3. Apply projection if needed.
     NDShape projected;
-    if (sp->projection && transformed.getDimension() > sceneDimension_) {
-        projected = sp->projection->projectShapeToDimension(transformed, sceneDimension_);
+    if (obj.projection && transformed.getDimension() > sceneDimension) {
+        projected = obj.projection->projectShapeToDimension(transformed, sceneDimension);
     } else {
         projected = transformed;
     }
@@ -160,34 +166,45 @@ ConvertedData Scene::convertObject(int id) const
     data.edges = projected.getEdges();
 
     // 4. Apply the scale transformation in the scene dimension.
-    if (!sp->scale.empty()) {
+    if (!obj.scale.empty()) {
         for (auto &vertex : data.vertices) {
-            if (vertex.second.size() != sp->scale.size()) {
+            if (vertex.second.size() != obj.scale.size()) {
                 QString msg = "Vertex dimension and scale dimension mismatch.";
                 qWarning() << msg;
                 throw std::runtime_error(msg.toStdString());
             }
             for (std::size_t i = 0; i < vertex.second.size(); ++i) {
-                vertex.second[i] *= sp->scale[i];
+                vertex.second[i] *= obj.scale[i];
             }
         }
     }
 
     // 5. Apply the offset transformation in the scene dimension.
-    if (!sp->offset.empty()) {
+    if (!obj.offset.empty()) {
         for (auto &vertex : data.vertices) {
-            if (vertex.second.size() != sp->offset.size()) {
+            if (vertex.second.size() != obj.offset.size()) {
                 QString msg = "Vertex dimension and offset dimension mismatch.";
                 qWarning() << msg;
                 throw std::runtime_error(msg.toStdString());
             }
             for (std::size_t i = 0; i < vertex.second.size(); ++i) {
-                vertex.second[i] += sp->offset[i];
+                vertex.second[i] += obj.offset[i];
             }
         }
     }
 
     return data;
+}
+
+ConvertedData Scene::convertObject(int id) const
+{
+    auto sp = getObject(id).lock();
+    if (!sp) {
+        QString msg = "No object found with the given ID.";
+        qWarning() << msg;
+        throw std::out_of_range(msg.toStdString());
+    }
+    return convertObject(*sp, sceneDimension_);
 }
 
 std::vector<ConvertedData> Scene::convertAllObjects() const

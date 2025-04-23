@@ -44,12 +44,13 @@ public:
 
 private:
     std::shared_ptr<SceneObjectModel> model_;  ///< Pointer to the scene object model.
-    int row_;                                  ///< The row index of the object to be removed.
+    int orignalRow_;                                  ///< The row index of the object to be removed.
     SceneObject objectSnapshot_;               ///< Snapshot of the scene object (captured before removal).
     QColor colorSnapshot_;                     ///< Snapshot of the associated color.
     bool valid_ = false;                       ///< Flag indicating if the snapshot is valid.
 
     std::function<void()> updateCallback_;
+    int removedId_;
 };
 
 #endif // REMOVE_SCENE_OBJECT_COMMAND_H

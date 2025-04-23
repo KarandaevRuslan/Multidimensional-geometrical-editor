@@ -67,6 +67,10 @@ std::vector<double> PerspectiveProjection::projectPoint(const std::vector<double
     return result;
 }
 
+std::shared_ptr<Projection> PerspectiveProjection::clone() const {
+    return std::make_shared<PerspectiveProjection>(*this);
+}
+
 // OrthographicProjection
 std::vector<double> OrthographicProjection::projectPoint(const std::vector<double>& point) const {
     std::size_t n = point.size();
@@ -77,6 +81,10 @@ std::vector<double> OrthographicProjection::projectPoint(const std::vector<doubl
     }
 
     return std::vector<double>(point.begin(), point.end() - 1);
+}
+
+std::shared_ptr<Projection> OrthographicProjection::clone() const {
+    return std::make_shared<OrthographicProjection>(*this);
 }
 
 // StereographicProjection
@@ -99,4 +107,9 @@ std::vector<double> StereographicProjection::projectPoint(const std::vector<doub
         result[i] = point[i] / denominator;
     }
     return result;
+}
+
+
+std::shared_ptr<Projection> StereographicProjection::clone() const {
+    return std::make_shared<StereographicProjection>(*this);
 }

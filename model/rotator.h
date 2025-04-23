@@ -36,6 +36,11 @@ public:
      */
     NDShape applyRotation(const NDShape& shape) const;
 
+    /* ---------- read‑only getters ---------- */
+    std::size_t axis1() const { return axis1_; }
+    std::size_t axis2() const { return axis2_; }
+    double      angle() const { return angle_; }
+
 private:
     std::size_t axis1_;
     std::size_t axis2_;
