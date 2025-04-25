@@ -95,17 +95,19 @@ void updateAxes(QList<Axis>& axes, const QVector3D& cameraPos,
             float axisProjection1 = QVector3D::dotProduct(tickPos1, unitDir);
             float axisProjection2 = QVector3D::dotProduct(tickPos2, unitDir);
 
-           if (!qFuzzyCompare(tickPos1.length(), 0.0f) &&
+            constexpr double epsilon = 1e-8;
+
+            if (std::abs(tickPos1.length()) >= epsilon &&
                 isInsideBox(tickPos1, projectionCenter, halfBox) &&
                 qAbs(axisProjection1) <= qAbs(halfLength - arrowOffset))
                 axis.tickPositions.append(tickPos1 + origin);
 
-           if (!qFuzzyCompare(tickPos2.length(), 0.0f) &&
-               isInsideBox(tickPos2, projectionCenter, halfBox) &&
-               qAbs(axisProjection2) <= qAbs(halfLength - arrowOffset))
-           {
-               axis.tickPositions.append(tickPos2 + origin);
-           }
+            if (std::abs(tickPos2.length()) >= epsilon &&
+                isInsideBox(tickPos2, projectionCenter, halfBox) &&
+                qAbs(axisProjection2) <= qAbs(halfLength - arrowOffset))
+            {
+                axis.tickPositions.append(tickPos2 + origin);
+            }
         }
     }
 }

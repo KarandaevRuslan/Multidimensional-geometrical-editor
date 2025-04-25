@@ -55,6 +55,8 @@ private:
     std::shared_ptr<class SceneObjectDelegate> delegate_;
 
     QMap<QString, QAction*> actions_;
+
+    void selectLastObject();
 };
 
 #endif // MAIN_WINDOW_TAB_WIDGET_H

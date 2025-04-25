@@ -1,5 +1,6 @@
 #include "mainWindowTabWidget.h"
 #include "commands/changeSceneObjectCommand.h"
+#include "addSceneObjectDialog.h"
 #include "sceneObjectEditorWidget.h"
 #include "commands/addSceneObjectCommand.h"
 #include "commands/removeSceneObjectCommand.h"
@@ -99,6 +100,23 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     makeAction("cut",    tr("Cut"),     QKeySequence::Cut,     &MainWindowTabWidget::cutSelected, listView_);
     makeAction("paste",  tr("Paste"),   QKeySequence::Paste,   &MainWindowTabWidget::pasteObject, listView_);
     makeAction("delete", tr("Delete"),  QKeySequence::Delete,  &MainWindowTabWidget::deleteSelected, listView_);
+    makeAction("add", tr("Add"), QKeySequence::New,
+               [this]{
+                   AddSceneObjectDialog dlg(this);
+                   if (dlg.exec() != QDialog::Accepted) return;
+
+                   static int nextId = 1;
+                   SceneObject obj = dlg.makeSceneObject(nextId++);
+                   QColor      col = dlg.color();
+
+                   undoStack_->push(new AddSceneObjectCommand(
+                       model_, obj, col,
+                       [this]{ sceneRenderer_->updateAll(); }));
+
+                   selectLastObject();
+               },
+               this);
+
 
     // Model is created but will be assigned scene/colorificator later:
     model_ = std::make_shared<SceneObjectModel>(scene_, sceneColorificator_, this);
@@ -116,6 +134,8 @@ void MainWindowTabWidget::onListContextMenu(const QPoint &pos)
 {
     QMenu contextMenu(this);
 
+    contextMenu.addAction(actions_["add"]);
+    contextMenu.addSeparator();
     contextMenu.addAction(actions_["cut"]);
     contextMenu.addAction(actions_["copy"]);
     contextMenu.addAction(actions_["paste"]);
@@ -221,6 +241,8 @@ void MainWindowTabWidget::pasteObject()
                 [this]() { sceneRenderer_->updateAll(); }
             );
             undoStack_->push(cmd);
+
+            selectLastObject();
         }
     }
 }
@@ -252,4 +274,13 @@ void MainWindowTabWidget::onCurrentRowChanged(const QModelIndex &current,
         QColor col = sceneColorificator_->getColorForObject(obj->uid);
         return col;
     });
+}
+
+void MainWindowTabWidget::selectLastObject()
+{
+    int row = model_->rowCount() - 1;
+    if (row >= 0) {
+        QModelIndex idx = model_->index(row, 0);
+        listView_->setCurrentIndex(idx);
+    }
 }

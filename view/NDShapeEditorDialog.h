@@ -5,6 +5,7 @@
 #include <QTableWidgetItem>
 #include <QVector>
 #include <memory>
+#include <QUndoStack>
 
 #include "../model/NDShape.h"
 
@@ -48,6 +49,7 @@ private:
     void rebuildVertexTable();
     void rebuildAdjacencyTable();
     void refreshAdjHeaders();
+    void internalReload();
 
     // ───────────────── state ─────────────────
     std::shared_ptr<NDShape> shape_;            ///< the working clone
@@ -61,6 +63,7 @@ private:
     QColor colorUndefined_ = Qt::black;
     QColor colorTrue_ = Qt::darkGreen;
     QColor colorFalse_ = Qt::darkRed;
+    QUndoStack *undoStack_;
 };
 
 #endif // NDSHAPE_EDITOR_DIALOG_H
