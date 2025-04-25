@@ -1,191 +1,198 @@
 #include "sceneObjectModel.h"
-
 #include <QListView>
+#include <algorithm>
 
-SceneObjectModel::SceneObjectModel(std::weak_ptr<Scene> scene,
+/* ===== ctor / helpers =================================================== */
+SceneObjectModel::SceneObjectModel(std::weak_ptr<Scene>              scene,
                                    std::weak_ptr<SceneColorificator> colorificator,
                                    QObject* parent)
-    : QAbstractListModel(parent), scene_(std::move(scene)), colorificator_(std::move(colorificator)) {
+    : QAbstractListModel(parent)
+    , scene_(std::move(scene))
+    , colorificator_(std::move(colorificator))
+{
     refresh();
 }
 
-int SceneObjectModel::rowCount(const QModelIndex& parent) const {
-    return parent.isValid() ? 0 : static_cast<int>(object_ids_.size());
+/* ===== basic overrides ================================================== */
+int SceneObjectModel::rowCount(const QModelIndex& parent) const
+{
+    return parent.isValid() ? 0 : static_cast<int>(object_uids_.size());
 }
 
-QVariant SceneObjectModel::data(const QModelIndex& index, int role) const {
-    if (!index.isValid() || index.row() >= static_cast<int>(object_ids_.size()))
-        return QVariant();
+QVariant SceneObjectModel::data(const QModelIndex& index, int role) const
+{
+    if (!index.isValid() || index.row() >= rowCount()) return {};
 
     auto obj = getObjectByRow(index.row());
-    if (!obj) return QVariant();
+    if (!obj) return {};
 
     switch (role) {
-    case IdRole: return obj->id;
-    case NameRole: return obj->name;
-    case ShapeRole: return QVariant::fromValue(obj->shape);
+    case UidRole:        return obj->uid;
+    case VisualIdRole:   return obj->id;
+    case NameRole:       return obj->name;
+    case ShapeRole:      return QVariant::fromValue(obj->shape);
     case ProjectionRole: return QVariant::fromValue(obj->projection);
-    case RotatorsRole: return QVariant::fromValue(obj->rotators);
-    case ScaleRole: return QVariant::fromValue(obj->scale);
-    case OffsetRole: return QVariant::fromValue(obj->offset);
+    case RotatorsRole:   return QVariant::fromValue(obj->rotators);
+    case ScaleRole:      return QVariant::fromValue(obj->scale);
+    case OffsetRole:     return QVariant::fromValue(obj->offset);
     case ColorRole: {
-        auto colorificator = colorificator_.lock();
-        if (!colorificator) return QColor(SceneColorificator::defaultColor);
-        return colorificator->getColorForObject(obj->id);
+        auto colMan = colorificator_.lock();
+        return colMan ? colMan->getColorForObject(obj->uid)
+                      : QColor(SceneColorificator::defaultColor);
     }
-    default: return QVariant();
+    default: return {};
     }
 }
 
-bool SceneObjectModel::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (!index.isValid() || index.row() >= static_cast<int>(object_ids_.size()))
-        return false;
+bool SceneObjectModel::setData(const QModelIndex& index, const QVariant& value, int role)
+{
+    if (!index.isValid() || index.row() >= rowCount()) return false;
 
     auto scene = scene_.lock();
     if (!scene) return false;
 
-    int id = object_ids_[index.row()];
-    auto obj = scene->getObject(id).lock();
-    if (!obj) return false;
+    QUuid uid = object_uids_[index.row()];
+    auto  sp  = scene->getObject(uid).lock();
+    if (!sp)  return false;
 
-    SceneObject updated = *obj;
+    SceneObject updated = *sp;   // local copy to modify
 
     switch (role) {
-    case NameRole: updated.name = value.toString(); break;
-    case ShapeRole: updated.shape = value.value<std::shared_ptr<NDShape>>(); break;
+    case NameRole:       updated.name       = value.toString(); break;
+    case ShapeRole:      updated.shape      = value.value<std::shared_ptr<NDShape>>(); break;
     case ProjectionRole: updated.projection = value.value<std::shared_ptr<Projection>>(); break;
-    case RotatorsRole: updated.rotators = value.value<std::vector<Rotator>>(); break;
-    case ScaleRole: updated.scale = value.value<std::vector<double>>(); break;
-    case OffsetRole: updated.offset = value.value<std::vector<double>>(); break;
+    case RotatorsRole:   updated.rotators   = value.value<std::vector<Rotator>>(); break;
+    case ScaleRole:      updated.scale      = value.value<std::vector<double>>();  break;
+    case OffsetRole:     updated.offset     = value.value<std::vector<double>>();  break;
     case ColorRole: {
-        auto colorificator = colorificator_.lock();
-        if (colorificator) colorificator->setColorForObject(id, value.value<QColor>());
+        if (auto colMan = colorificator_.lock())
+            colMan->setColorForObject(uid, value.value<QColor>());
         emit dataChanged(index, index, { ColorRole });
         return true;
     }
     default: return false;
     }
 
-    scene->setObject(updated.id, updated.name, updated.shape,
-                     updated.projection, updated.rotators,
-                     updated.scale, updated.offset);
+    scene->setObject(uid, updated.name, updated.shape, updated.projection,
+                     updated.rotators, updated.scale, updated.offset);
 
     emit dataChanged(index, index, { role });
     return true;
 }
 
-QHash<int, QByteArray> SceneObjectModel::roleNames() const {
+QHash<int, QByteArray> SceneObjectModel::roleNames() const
+{
     return {
-        { IdRole, "id" },
-        { NameRole, "name" },
-        { ShapeRole, "shape" },
-        { ProjectionRole, "projection" },
-        { RotatorsRole, "rotators" },
-        { ScaleRole, "scale" },
-        { OffsetRole, "offset" },
-        { ColorRole, "color" }
+        { UidRole,        "uid"      },
+        { VisualIdRole,   "id"       },
+        { NameRole,       "name"     },
+        { ShapeRole,      "shape"    },
+        { ProjectionRole, "projection"},
+        { RotatorsRole,   "rotators" },
+        { ScaleRole,      "scale"    },
+        { OffsetRole,     "offset"   },
+        { ColorRole,      "color"    }
     };
 }
 
-Qt::ItemFlags SceneObjectModel::flags(const QModelIndex& index) const {
+Qt::ItemFlags SceneObjectModel::flags(const QModelIndex& index) const
+{
     return index.isValid()
-    ? Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable
-    : Qt::NoItemFlags;
+         ? Qt::ItemIsEnabled | Qt::ItemIsSelectable | Qt::ItemIsEditable
+         : Qt::NoItemFlags;
 }
 
-void SceneObjectModel::refresh() {
+/* ===== public API ======================================================= */
+void SceneObjectModel::refresh()
+{
     auto scene = scene_.lock();
     if (!scene) return;
 
     beginResetModel();
-    object_ids_.clear();
-    for (const auto& weak_obj : scene->getAllObjects()) {
-        if (auto obj = weak_obj.lock()) {
-            object_ids_.push_back(obj->id);
-        }
-    }
+    object_uids_.clear();
+    for (const auto& w : scene->getAllObjects())
+        if (auto sp = w.lock()) object_uids_.push_back(sp->uid);
     endResetModel();
 
-    // ensure a valid current index exists
-    if (QListView *lv = qobject_cast<QListView*>(parent()))
-        if (rowCount() > 0)
-            lv->setCurrentIndex(index(0,0));
+    if (auto lv = qobject_cast<QListView*>(parent()); lv && rowCount() > 0)
+        lv->setCurrentIndex(index(0,0));
 }
 
-void SceneObjectModel::addSceneObject(const SceneObject& obj, const QColor& color) {
+void SceneObjectModel::addSceneObject(const SceneObject& obj, const QColor& color)
+{
     auto scene = scene_.lock();
-    auto colorificator = colorificator_.lock();
+    auto colMan= colorificator_.lock();
     if (!scene) return;
 
-    int row = static_cast<int>(object_ids_.size());
-    beginInsertRows(QModelIndex(), row, row);
-    int id = scene->addObject(obj.id, obj.name, obj.shape, obj.projection,
-                     obj.rotators, obj.scale, obj.offset);
-    object_ids_.push_back(id);
-    if (colorificator) {
-        colorificator->setColorForObject(id, color);
-    }
+    int newRow = rowCount();
+    beginInsertRows({}, newRow, newRow);
+
+    QUuid uid = scene->addObject(obj.uid, obj.id, obj.name, obj.shape, obj.projection,
+                                 obj.rotators, obj.scale, obj.offset);
+    object_uids_.push_back(uid);
+    if (colMan) colMan->setColorForObject(uid, color);
+
     endInsertRows();
 }
 
-void SceneObjectModel::addSceneObject(const SceneObject& obj){
+void SceneObjectModel::addSceneObject(const SceneObject& obj)
+{
     addSceneObject(obj, SceneColorificator::defaultColor);
 }
 
-void SceneObjectModel::removeSceneObject(int row) {
+void SceneObjectModel::removeSceneObject(int row)
+{
     auto scene = scene_.lock();
-    auto colorificator = colorificator_.lock();
-    if (!scene || row < 0 || row >= static_cast<int>(object_ids_.size())) return;
+    auto colMan= colorificator_.lock();
+    if (!scene || row < 0 || row >= rowCount()) return;
 
-    int id = object_ids_[row];
+    QUuid uid = object_uids_[row];
 
-    beginRemoveRows(QModelIndex(), row, row);
-    scene->removeObject(id);
-    object_ids_.erase(object_ids_.begin() + row);
-    if (colorificator) {
-        try {
-            colorificator->removeColorForObject(id);
-        } catch (...) {
-            // Safe to ignore if color mapping doesn't exist
-        }
+    beginRemoveRows({}, row, row);
+    scene->removeObject(uid);
+    object_uids_.erase(object_uids_.begin() + row);
+    if (colMan) {
+        try   { colMan->removeColorForObject(uid); }
+        catch (...) { /* ignore missing mapping */ }
     }
     endRemoveRows();
 }
 
-std::shared_ptr<SceneObject> SceneObjectModel::getObjectByRow(int row) const {
+std::shared_ptr<SceneObject> SceneObjectModel::getObjectByRow(int row) const
+{
     auto scene = scene_.lock();
-    if (!scene || row < 0 || row >= static_cast<int>(object_ids_.size())) return nullptr;
-    return scene->getObject(object_ids_[row]).lock();
+    if (!scene || row < 0 || row >= rowCount()) return {};
+    return scene->getObject(object_uids_[row]).lock();
 }
 
-void SceneObjectModel::setScene(std::weak_ptr<Scene> scene) {
+void SceneObjectModel::setScene(std::weak_ptr<Scene> scene)
+{
     scene_ = std::move(scene);
     refresh();
 }
 
-void SceneObjectModel::setSceneColorificator(std::weak_ptr<SceneColorificator> colorificator) {
-    colorificator_ = std::move(colorificator);
-    // Optionally, you can emit dataChanged for color updates if needed
-    emit dataChanged(index(0), index(rowCount() - 1), { ColorRole });
+void SceneObjectModel::setSceneColorificator(std::weak_ptr<SceneColorificator> c)
+{
+    colorificator_ = std::move(c);
+    emit dataChanged(index(0), index(rowCount()-1), { ColorRole });
 }
 
-int SceneObjectModel::rowForId(int objectId) const {
-    auto it = std::find(object_ids_.begin(), object_ids_.end(), objectId);
-    return (it == object_ids_.end())
-               ? -1
-               : static_cast<int>(std::distance(object_ids_.begin(), it));
+int SceneObjectModel::rowForUid(const QUuid& uid) const
+{
+    auto it = std::find(object_uids_.begin(), object_uids_.end(), uid);
+    return it == object_uids_.end() ? -1
+                                    : static_cast<int>(std::distance(object_uids_.begin(), it));
 }
 
-void SceneObjectModel::debugPrintAll() const {
-    auto colorificator = colorificator_.lock();
-
-    qDebug() << "---- SceneObjectModel: all IDs + colors ----";
-    for (int id : object_ids_) {
-        QColor col = colorificator->getColorForObject(id);
-        qDebug()
-            << "  ID =" << id
-            << ", color =" << col.name()  // prints as “#RRGGBB”
-            ;
+void SceneObjectModel::debugPrintAll() const
+{
+    auto colMan = colorificator_.lock();
+    qDebug() << "---- SceneObjectModel (uids + colors) ----";
+    for (const QUuid& uid : object_uids_) {
+        QColor col = colMan ? colMan->getColorForObject(uid)
+                            : QColor(SceneColorificator::defaultColor);
+        qDebug() << "  uid =" << uid.toString(QUuid::WithoutBraces)
+                 << ", color =" << col.name();
     }
-    qDebug() << "---------------------------------------------";
+    qDebug() << "-----------------------------------------";
 }

@@ -196,9 +196,23 @@ void MainWindowTabWidget::pasteObject()
     if (presenterMainTab_) {
         auto parent = presenterMainTab_->getParentPresenter();
         if (parent && !parent->copyBuffer_->name.isEmpty()) {
-            // Create a new object based on the shared clipboard.
+            QString baseName = parent->copyBuffer_->name;
+            static QRegularExpression reCopyNum(R"( - Copy(?: - (\d+))?$)");
+            QRegularExpressionMatch match = reCopyNum.match(baseName);
+
+            if (match.hasMatch()) {
+                if (match.captured(1).isEmpty()) {
+                    baseName += " - 2";
+                } else {
+                    int num = match.captured(1).toInt();
+                    baseName = baseName.left(baseName.lastIndexOf(" - ")) + QString(" - %1").arg(num + 1);
+                }
+            } else {
+                baseName += " - Copy";
+            }
+
             SceneObject newObj = parent->copyBuffer_->clone();
-            newObj.name += " - " + tr("Copy");
+            newObj.name = baseName;
 
             auto cmd = new AddSceneObjectCommand(
                 model_,
@@ -235,7 +249,7 @@ void MainWindowTabWidget::onCurrentRowChanged(const QModelIndex &current,
 
     editor_->setObject(obj,
     [this, obj]() {
-        QColor col = sceneColorificator_->getColorForObject(obj->id);
+        QColor col = sceneColorificator_->getColorForObject(obj->uid);
         return col;
     });
 }

@@ -1,62 +1,54 @@
 #include "addSceneObjectCommand.h"
-#include <QUndoCommand>
-#include <QColor>
-#include <memory>
-#include "../dataModels/sceneObjectModel.h"
+#include <QDebug>
 
 AddSceneObjectCommand::AddSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
-                                             SceneObject object,
-                                             QColor color,
-                                             std::function<void()> updateCallback,
-                                             QUndoCommand* parent)
-    : QUndoCommand(parent),
-    model_(std::move(model)),
-    object_(std::move(object)),
-    color_(std::move(color)),
-    updateCallback_(std::move(updateCallback))
+                                             SceneObject       object, // should be deep copied before passing here
+                                             QColor            color,
+                                             std::function<void()> updateCb,
+                                             QUndoCommand*     parent)
+    : QUndoCommand(parent)
+    , model_(std::move(model))
+    , object_(std::move(object))
+    , color_(std::move(color))
+    , updateCallback_(std::move(updateCb))
 {
     setText(QString("Add object '%1'").arg(object_.name));
 }
 
 AddSceneObjectCommand::AddSceneObjectCommand(std::shared_ptr<SceneObjectModel> model,
-                                             SceneObject object,
-                                             std::function<void()> updateCallback,
-                                             QUndoCommand* parent)
-    : AddSceneObjectCommand(model, object, SceneColorificator::defaultColor, std::move(updateCallback), parent)
+                                             SceneObject        object,
+                                             std::function<void()> updateCb,
+                                             QUndoCommand*      parent)
+    : AddSceneObjectCommand(std::move(model), std::move(object),
+                            SceneColorificator::defaultColor,
+                            std::move(updateCb), parent)
 {}
 
 void AddSceneObjectCommand::redo()
 {
-    qDebug() << "Redo add ";
-    model_->debugPrintAll();
-
-    // If this is our first time running redo() (the command was just pushed),
-    // we figure out the row at which the model will place the new object.
-    if (insertedRow_ < 0) {
-        insertedRow_ = model_->rowCount();
+    if (insertedUid_.isNull()){
+        insertedUid_ = QUuid::createUuid(); // Create as new object
     }
-
-    model_->addSceneObject(object_, color_);
-    {
-        QModelIndex idx = model_->index(insertedRow_, 0);
-        insertedId_ = idx.data(SceneObjectModel::IdRole).toInt();
-    }
+    SceneObject objClone = object_.clone();
+    objClone.uid = insertedUid_;
+    model_->addSceneObject(objClone, color_);
 
     if (updateCallback_) updateCallback_();
-}
 
+    qDebug() << "Redo add";
+    model_->debugPrintAll();
+}
 
 void AddSceneObjectCommand::undo()
 {
-    qDebug() << "Undo add ";
-    model_->debugPrintAll();
-
-    // We only know which row it was appended at if we already did redo() once.
-    if (insertedRow_ >= 0) {
-        int row = model_->rowForId(insertedId_);
-        if (row >= 0) {
-            model_->removeSceneObject(row);
+    if (!insertedUid_.isNull()) {
+        int r = model_->rowForUid(insertedUid_);
+        if (r >= 0) {
+            model_->removeSceneObject(r);
             if (updateCallback_) updateCallback_();
         }
     }
+
+    qDebug() << "Undo add";
+    model_->debugPrintAll();
 }

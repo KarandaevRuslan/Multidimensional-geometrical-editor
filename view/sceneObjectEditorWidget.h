@@ -109,6 +109,8 @@ private:
 
     QMap<QString, QAction*> rotatorActions_;
     QGroupBox *rotGroupBox_;
+    QLabel *uidLabel_;
+    QLabel *uidTextLabel_;
 };
 
 #endif // SCENE_OBJECT_EDITOR_WIDGET_H

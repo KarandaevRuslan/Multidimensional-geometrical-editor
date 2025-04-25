@@ -1,232 +1,151 @@
 #include "scene.h"
 #include <algorithm>
+#include <set>
 #include <stdexcept>
 #include <QString>
 #include <QDebug>
 #include "projection.h"
 
-SceneObject SceneObject::clone(){
-    SceneObject sceneObjCopy = *this;
-    if (shape) {
-        sceneObjCopy.shape = std::make_shared<NDShape>(*shape);
-    }
-    if (projection) {
-        sceneObjCopy.projection = projection->clone();
-    }
-    return sceneObjCopy;
-}
-
-Scene::~Scene() {
-    qDebug() << "Scene cleared";
-}
-
-int Scene::addObject(int id, QString name,
-                      std::shared_ptr<NDShape> shape,
-                      std::shared_ptr<Projection> projection,
-                      const std::vector<Rotator>& rotators,
-                      const std::vector<double>& scale,
-                      const std::vector<double>& offset)
+SceneObject SceneObject::clone()
 {
-    // Check if the ID already exists
-    auto it = std::find_if(objects_.begin(), objects_.end(),
-                           [id](const std::shared_ptr<SceneObject>& obj) { return obj->id == id; });
-
-    if (it != objects_.end()) {
-        qWarning() << "ID already exists, generating a new unique ID.";
-
-        // Generate new unique ID
-        std::set<int> usedIds;
-        for (const auto& obj : objects_) {
-            usedIds.insert(obj->id);
-        }
-
-        while (usedIds.count(id)) {
-            ++id;
-        }
-
-        qDebug() << "New unique ID assigned:" << id;
-    }
-
-    // Check that scale and offset dimensions match the scene dimension if provided.
-    if (!scale.empty() && scale.size() != sceneDimension_) {
-        QString msg = "Scale dimension does not match the scene dimension.";
-        qWarning() << msg;
-        throw std::invalid_argument(msg.toStdString());
-    }
-    if (!offset.empty() && offset.size() != sceneDimension_) {
-        QString msg = "Offset dimension does not match the scene dimension.";
-        qWarning() << msg;
-        throw std::invalid_argument(msg.toStdString());
-    }
-
-    std::shared_ptr<SceneObject> obj = std::make_shared<SceneObject>();
-    obj->id = id;
-    obj->name = name;
-    obj->shape = shape;
-    obj->projection = projection;
-    obj->rotators = rotators;
-    obj->scale = scale;
-    obj->offset = offset;
-    objects_.push_back(obj);
-
-    return id;
+    SceneObject copy = *this;
+    if (shape)      copy.shape      = std::make_shared<NDShape>(*shape);
+    if (projection) copy.projection = projection->clone();
+    return copy;
 }
 
-void Scene::removeObject(int id)
+Scene::~Scene() { qDebug() << "Scene cleared"; }
+
+QUuid Scene::addObject(QUuid uid, int id, QString name,
+                       std::shared_ptr<NDShape>     shape,
+                       std::shared_ptr<Projection>  projection,
+                       const std::vector<Rotator>&  rotators,
+                       const std::vector<double>&   scale,
+                       const std::vector<double>&   offset)
+{
+    // Ensure id uniqueness (visual only).
+    std::set<int> used;
+    for (const auto& o : objects_) used.insert(o->id);
+    while (used.count(id)) ++id;
+
+    // Dimension checks.
+    if (!scale.empty()  && scale.size()  != sceneDimension_)
+        throw std::invalid_argument("Scale dimension mismatch");
+    if (!offset.empty() && offset.size() != sceneDimension_)
+        throw std::invalid_argument("Offset dimension mismatch");
+
+    auto obj       = std::make_shared<SceneObject>();
+    obj->uid       = uid;
+    obj->id        = id;
+    obj->name      = std::move(name);
+    obj->shape     = std::move(shape);
+    obj->projection= std::move(projection);
+    obj->rotators  = rotators;
+    obj->scale     = scale;
+    obj->offset    = offset;
+
+    objects_.push_back(obj);
+    return obj->uid;
+}
+
+void Scene::removeObject(const QUuid& uid)
 {
     auto it = std::remove_if(objects_.begin(), objects_.end(),
-                             [id](const std::shared_ptr<SceneObject>& obj) { return obj->id == id; });
-    if (it == objects_.end()) {
-        QString msg = "No object found with the given ID.";
-        qWarning() << msg;
-        throw std::out_of_range(msg.toStdString());
-    }
+                             [&uid](const std::shared_ptr<SceneObject>& o){ return o->uid == uid; });
+    if (it == objects_.end())
+        throw std::out_of_range("No object with given uid");
     objects_.erase(it, objects_.end());
 }
 
-std::weak_ptr<SceneObject> Scene::getObject(int id) const
+std::weak_ptr<SceneObject> Scene::getObject(const QUuid& uid) const
 {
-    auto it = std::find_if(objects_.begin(), objects_.end(),
-                           [id](const std::shared_ptr<SceneObject>& obj) { return obj->id == id; });
-    if (it == objects_.end()) {
-        QString msg = "No object found with the given ID.";
-        qWarning() << msg;
-        throw std::out_of_range(msg.toStdString());
-    }
-    return std::weak_ptr<SceneObject>(*it);
+    auto it = std::find_if(objects_.cbegin(), objects_.cend(),
+                           [&uid](const std::shared_ptr<SceneObject>& o){ return o->uid == uid; });
+    if (it == objects_.cend())
+        throw std::out_of_range("No object with given uid");
+    return *it;
 }
 
-void Scene::setObject(int id, QString name,
-                      std::shared_ptr<NDShape> shape,
+void Scene::setObject(const QUuid& uid,
+                      QString name,
+                      std::shared_ptr<NDShape>   shape,
                       std::shared_ptr<Projection> projection,
                       const std::vector<Rotator>& rotators,
-                      const std::vector<double>& scale,
-                      const std::vector<double>& offset)
+                      const std::vector<double>&  scale,
+                      const std::vector<double>&  offset)
 {
-    auto it = std::find_if(objects_.begin(), objects_.end(),
-                           [id](const std::shared_ptr<SceneObject>& obj) { return obj->id == id; });
-    if (it == objects_.end()) {
-        QString msg = "No object found with the given ID.";
-        qWarning() << msg;
-        throw std::out_of_range(msg.toStdString());
-    }
+    auto sp = getObject(uid).lock();
+    if (!sp) throw std::out_of_range("Stale pointer for uid");
 
-    // Check that scale and offset dimensions match the scene dimension if provided.
-    if (!scale.empty() && scale.size() != sceneDimension_) {
-        QString msg = "Scale dimension does not match the scene dimension.";
-        qWarning() << msg;
-        throw std::invalid_argument(msg.toStdString());
-    }
-    if (!offset.empty() && offset.size() != sceneDimension_) {
-        QString msg = "Offset dimension does not match the scene dimension.";
-        qWarning() << msg;
-        throw std::invalid_argument(msg.toStdString());
-    }
+    if (!scale.empty()  && scale.size()  != sceneDimension_)
+        throw std::invalid_argument("Scale dimension mismatch");
+    if (!offset.empty() && offset.size() != sceneDimension_)
+        throw std::invalid_argument("Offset dimension mismatch");
 
-    (*it)->name = name;
-    (*it)->shape = shape;
-    (*it)->projection = projection;
-    (*it)->rotators = rotators;
-    (*it)->scale = scale;
-    (*it)->offset = offset;
+    sp->name       = std::move(name);
+    sp->shape      = std::move(shape);
+    sp->projection = std::move(projection);
+    sp->rotators   = rotators;
+    sp->scale      = scale;
+    sp->offset     = offset;
 }
 
 std::vector<std::weak_ptr<SceneObject>> Scene::getAllObjects() const
 {
-    std::vector<std::weak_ptr<SceneObject>> weakObjects;
-    for (const auto& obj : objects_) {
-        weakObjects.push_back(std::weak_ptr<SceneObject>(obj));
-    }
-    return weakObjects;
+    std::vector<std::weak_ptr<SceneObject>> out;
+    for (auto& o : objects_) out.emplace_back(o);
+    return out;
 }
 
 ConvertedData Scene::convertObject(const SceneObject& obj, int sceneDimension)
 {
-    ConvertedData data;
-    data.objectId = obj.id;
+    ConvertedData res;
+    res.objectUid = obj.uid;
 
-    // 1. Start with the original shape.
-    NDShape transformed = *(obj.shape);
+    NDShape transformed = *obj.shape;
+    for (const Rotator& r : obj.rotators)
+        transformed = r.applyRotation(transformed);
 
-    // 2. Apply rotations in sequence.
-    for (const auto &rotator : obj.rotators) {
-        transformed = rotator.applyRotation(transformed);
-    }
+    if(!obj.projection && transformed.getDimension() > sceneDimension)
+        throw std::invalid_argument("Projection \"None\" is not allowed for this object.");
 
-    // 3. Apply projection if needed.
-    NDShape projected;
-    if (obj.projection && transformed.getDimension() > sceneDimension) {
-        projected = obj.projection->projectShapeToDimension(transformed, sceneDimension);
-    } else {
-        projected = transformed;
-    }
+    NDShape projected = (transformed.getDimension() > sceneDimension)
+                            ? obj.projection->projectShapeToDimension(transformed, sceneDimension)
+                            : transformed;
 
-    // Retrieve vertices and edges from the projected shape.
-    data.vertices = projected.getAllVertices();
-    data.edges = projected.getEdges();
+    res.vertices = projected.getAllVertices();
+    res.edges    = projected.getEdges();
 
-    // 4. Apply the scale transformation in the scene dimension.
     if (!obj.scale.empty()) {
-        for (auto &vertex : data.vertices) {
-            if (vertex.second.size() != obj.scale.size()) {
-                QString msg = "Vertex dimension and scale dimension mismatch.";
-                qWarning() << msg;
-                throw std::runtime_error(msg.toStdString());
-            }
-            for (std::size_t i = 0; i < vertex.second.size(); ++i) {
-                vertex.second[i] *= obj.scale[i];
-            }
-        }
+        for (auto& v : res.vertices)
+            for (std::size_t i = 0; i < v.second.size(); ++i)
+                v.second[i] *= obj.scale[i];
     }
-
-    // 5. Apply the offset transformation in the scene dimension.
     if (!obj.offset.empty()) {
-        for (auto &vertex : data.vertices) {
-            if (vertex.second.size() != obj.offset.size()) {
-                QString msg = "Vertex dimension and offset dimension mismatch.";
-                qWarning() << msg;
-                throw std::runtime_error(msg.toStdString());
-            }
-            for (std::size_t i = 0; i < vertex.second.size(); ++i) {
-                vertex.second[i] += obj.offset[i];
-            }
-        }
+        for (auto& v : res.vertices)
+            for (std::size_t i = 0; i < v.second.size(); ++i)
+                v.second[i] += obj.offset[i];
     }
-
-    return data;
+    return res;
 }
 
-ConvertedData Scene::convertObject(int id) const
+ConvertedData Scene::convertObject(const QUuid& uid) const
 {
-    auto sp = getObject(id).lock();
-    if (!sp) {
-        QString msg = "No object found with the given ID.";
-        qWarning() << msg;
-        throw std::out_of_range(msg.toStdString());
-    }
+    auto sp = getObject(uid).lock();
+    if (!sp) throw std::out_of_range("Stale pointer for uid");
     return convertObject(*sp, sceneDimension_);
 }
 
 std::vector<ConvertedData> Scene::convertAllObjects() const
 {
-    std::vector<ConvertedData> results;
-    for (const auto& obj : objects_) {
-        results.push_back(convertObject(obj->id));
-    }
-    return results;
+    std::vector<ConvertedData> v;
+    for (auto& o : objects_) v.push_back(convertObject(o->uid));
+    return v;
 }
 
-void Scene::setSceneDimension(std::size_t dim)
+void Scene::setSceneDimension(std::size_t d)
 {
-    if (dim < 1) {
-        QString msg = "Scene dimension must be at least 1.";
-        qWarning() << msg;
-        throw std::invalid_argument(msg.toStdString());
-    }
-    sceneDimension_ = dim;
+    if (d < 1) throw std::invalid_argument("Scene dimension must be ≥ 1");
+    sceneDimension_ = d;
 }
-
-std::size_t Scene::getSceneDimension() const
-{
-    return sceneDimension_;
-}
+std::size_t Scene::getSceneDimension() const { return sceneDimension_; }

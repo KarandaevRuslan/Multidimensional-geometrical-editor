@@ -29,17 +29,25 @@ public:
 
 private slots:
     void onDimensionChanged(int d);
-    void onAddVertex();
-    void onRemoveSelectedVertex();
+    void addVertex();
+    void removeVertices();
     void onVertexTableItemChanged(QTableWidgetItem* it);
-    void onAdjItemChanged(QTableWidgetItem* it);
+    void onAdjCellClicked(int row, int col);
+
+    void showVertContextMenu(const QPoint& pos);
+    void copyVertices();
+    void cutVertices();
+    void pasteVertices();
 
 private:
+    QHash<QString,QAction*> vertActions_;
+    QList<std::vector<double>> vertClipboard_;
+
     // ───────────────── helpers ─────────────────
+    void refreshVertexVerticalHeader();
     void rebuildVertexTable();
     void rebuildAdjacencyTable();
     void refreshAdjHeaders();
-    void writeBackIntoShape();
 
     // ───────────────── state ─────────────────
     std::shared_ptr<NDShape> shape_;            ///< the working clone
@@ -48,9 +56,11 @@ private:
     // ───────────────── ui ─────────────────
     QSpinBox*     dimSpin_      = nullptr;
     QTableWidget* vertTable_    = nullptr;
-    QToolButton*  addVertexBtn_ = nullptr;
-    QToolButton*  delVertexBtn_ = nullptr;
     QTableWidget* adjTable_     = nullptr;
+
+    QColor colorUndefined_ = Qt::black;
+    QColor colorTrue_ = Qt::darkGreen;
+    QColor colorFalse_ = Qt::darkRed;
 };
 
 #endif // NDSHAPE_EDITOR_DIALOG_H

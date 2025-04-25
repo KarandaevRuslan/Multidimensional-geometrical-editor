@@ -9,7 +9,8 @@
 #include <QCommandLineParser>
 #include <QCommandLineOption>
 
-static void setupScene(std::shared_ptr<Scene> scene);
+static void setupScene(std::shared_ptr<Scene> scene,
+                       std::shared_ptr<SceneColorificator> sceneColorificator);
 
 PresenterMain::PresenterMain(MainWindow* mainWindow)
     : mainWindow_(mainWindow)
@@ -25,7 +26,7 @@ PresenterMain::PresenterMain(MainWindow* mainWindow)
     mainWindow_->setPresenterMain(this);
 
     // Basic window sizing logic remains.
-    mainWindow_->resize(QSize(720,480));
+    mainWindow_->resize(QSize(936, 624));
     int desktopArea = QGuiApplication::primaryScreen()->size().width() *
                       QGuiApplication::primaryScreen()->size().height();
     int widgetArea = mainWindow_->width() * mainWindow_->height();
@@ -45,12 +46,9 @@ void PresenterMain::createNewTab() {
 
     // Pass the common scene and colorificator to the tab widget.
     std::shared_ptr<Scene> scene = std::make_shared<Scene>();
-    ::setupScene(scene);
-    tabWidget->setScene(scene);
-
     std::shared_ptr<SceneColorificator> sceneColorificator = std::make_shared<SceneColorificator>();
-    sceneColorificator->setColorForObject(2, QColor(160,60,61));
-    sceneColorificator->setColorForObject(1, QColor(28,98,15));
+    ::setupScene(scene, sceneColorificator);
+    tabWidget->setScene(scene);
     tabWidget->setSceneColorificator(sceneColorificator);
 
     // Pass the shared delegate.
@@ -118,7 +116,8 @@ QWidget* PresenterMainTab::getTabWidget() const {
     return tabWidget_;
 }
 
-static void setupScene(std::shared_ptr<Scene> scene) {
+static void setupScene(std::shared_ptr<Scene> scene,
+                       std::shared_ptr<SceneColorificator> sceneColorificator) {
     try {
         scene->setSceneDimension(3);
 
@@ -141,7 +140,8 @@ static void setupScene(std::shared_ptr<Scene> scene) {
         }
         std::shared_ptr<Projection> perspectiveProj = std::make_shared<PerspectiveProjection>(15.0);
         Rotator rotatorTesseract(0, 1, 0.5);
-        scene->addObject(1, "Tesseract", tesseract, perspectiveProj, {rotatorTesseract}, {2, 2, 2}, {});
+        auto uid1 = scene->addObject(QUuid::createUuid(), 1, "Tesseract", tesseract, perspectiveProj, {rotatorTesseract}, {2, 2, 2}, {});
+        sceneColorificator->setColorForObject(uid1, QColor(160,60,61));
 
         std::shared_ptr<NDShape> simplex5D = std::make_shared<NDShape>(5);
         std::vector<std::size_t> simplexVertices;
@@ -162,7 +162,8 @@ static void setupScene(std::shared_ptr<Scene> scene) {
             }
         }
         Rotator rotatorSimplex(1, 2, 0.3);
-        scene->addObject(2, "Simplex5D", simplex5D, perspectiveProj, {rotatorSimplex}, {3, 3, 3}, {5, 5, 5});
+        auto uid2 = scene->addObject(QUuid::createUuid(), 2, "Simplex5D", simplex5D, perspectiveProj, {rotatorSimplex}, {3, 3, 3}, {5, 5, 5});
+        sceneColorificator->setColorForObject(uid2, QColor(28,98,15));
     } catch (const std::exception& ex) {
         qFatal() << "Exception occurred: " << ex.what();
     }

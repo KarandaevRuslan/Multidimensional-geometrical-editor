@@ -15,24 +15,29 @@ MainWindow::MainWindow(QWidget* parent)
     presenterMain_(nullptr)
 {
     ui_->setupUi(this);
-    tabWidget_ = new QTabWidget(this);
 
-    // Enable the Close button on each tab:
+    // 1) Create the tab widget as before
+    tabWidget_ = new QTabWidget;
     tabWidget_->setTabsClosable(true);
-
-    // Allow reordering tabs by mouse drag:
     tabWidget_->setMovable(true);
-
-    // Connect to handle the user clicking the "X" on a tab:
     connect(tabWidget_, &QTabWidget::tabCloseRequested,
             this, [this](int index) {
-                if (presenterMain_) {
-                    presenterMain_->removeTab(index);
-                }
+                if (presenterMain_) presenterMain_->removeTab(index);
             });
+    connect(ui_->actionNew, &QAction::triggered,
+            this, &MainWindow::addNewSceneTab);
 
-    connect(ui_->actionNew, &QAction::triggered, this, &MainWindow::addNewSceneTab);
-    setCentralWidget(tabWidget_);
+    // 2) Wrap it in a container widget + layout
+    auto *container = new QWidget;
+    auto *lay = new QVBoxLayout(container);
+    // tweak these numbers to taste
+    lay->setContentsMargins(5, 2, 5, 2);
+    lay->setSpacing(4);
+
+    lay->addWidget(tabWidget_);
+
+    // 3) And make *that* the central widget
+    setCentralWidget(container);
 }
 
 MainWindow::~MainWindow()

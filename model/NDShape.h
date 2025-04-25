@@ -76,6 +76,15 @@ public:
     void setVertexCoords(std::size_t vertexId, const std::vector<double>& newCoords);
 
     /**
+     * @brief Retrieves the coordinates of a single vertex by its ID.
+     *
+     * @param vertexId The ID of the vertex to look up.
+     * @return A const reference to the coordinate vector of that vertex.
+     * @throws std::out_of_range If no vertex with that ID exists.
+     */
+    const std::vector<double>& getVertex(std::size_t vertexId) const;
+
+    /**
      * @brief Retrieves the edges of this shape as pairs of vertex IDs.
      *
      * @return A const reference to the vector of edges.
@@ -83,19 +92,19 @@ public:
     const std::vector<std::pair<std::size_t, std::size_t>>& getEdges() const;
 
     /**
-     * @brief Clones the current shape into a new NDShape with the specified dimension.
+     * @brief Creates a deep copy of this shape at a different dimension.
      *
-     * The new shape will:
-     *  - Have the same vertex IDs.
-     *  - Have the same edges.
-     *  - Have newly allocated coordinate storage for each vertex (all zeroed),
-     *    or left uninitialized so that they can be set by the caller.
-     *  - Copy the same vertexCounter_ so the next added vertex picks up where this left off.
+     * The cloned shape will:
+     *  - Retain the same vertex IDs and connectivity (edges).
+     *  - Adjust each vertex’s coordinate vector to length `newDim`:
+     *      - If `newDim` < original dimension, excess components are truncated.
+     *      - If `newDim` > original dimension, new components are zero-initialized.
+     *  - Preserve the internal `vertexCounter_` so future vertex IDs continue sequentially.
      *
-     * @param newDim The dimension of the clone. Must be > 0.
-     * @return A new NDShape instance with the requested dimension,
-     *         containing the same IDs and edges, but new coordinate arrays.
-     * @throws std::invalid_argument If newDim == 0.
+     * @param newDim  The target dimension for the clone; must be > 0.
+     * @return        A new NDShape instance matching this shape’s topology,
+     *                resized to `newDim`.
+     * @throws std::invalid_argument If `newDim` is zero.
      */
     NDShape clone(std::size_t newDim) const;
 

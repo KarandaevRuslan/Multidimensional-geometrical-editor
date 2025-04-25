@@ -1,10 +1,13 @@
 #include "changeSceneObjectCommand.h"
+#include <QDebug>
 
 /* static */
-void ChangeSceneObjectCommand::setAllRoles(SceneObjectModel* m, int id,
-                                           const SceneObject& obj, const QColor& col)
+void ChangeSceneObjectCommand::setAllRoles(SceneObjectModel* m,
+                                                        const QUuid&      uid,
+                                                        const SceneObject& obj,
+                                                        const QColor&     col)
 {
-    int row = m->rowForId(id);
+    int row = m->rowForUid(uid);
     if (row < 0) return;
 
     const QModelIndex idx = m->index(row, 0);
@@ -22,39 +25,38 @@ ChangeSceneObjectCommand::ChangeSceneObjectCommand(
     int                                row,
     const SceneObject&                 after,
     const QColor&                      colorAfter,
-    std::function<void()>              updateCallback,
-    std::function<void()>              rebuildEditUiCallback,
+    std::function<void()>              updateCb,
+    std::function<void()>              rebuildUiCb,
     QUndoCommand*                      parent)
-    : QUndoCommand(QObject::tr("Edit object"), parent),
-    model_(std::move(model)), originalRow_(row),
-    after_(after), colorAfter_(colorAfter),
-    updateCallback_(std::move(updateCallback)),
-    rebuildEditUiCallback_(std::move(rebuildEditUiCallback))
+    : QUndoCommand(QObject::tr("Edit object"), parent)
+    , model_(std::move(model))
+    , originalRow_(row)
+    , after_(after)
+    , colorAfter_(colorAfter)
+    , updateCallback_(std::move(updateCb))
+    , rebuildEditUiCallback_(std::move(rebuildUiCb))
 {
-    auto beforeObj = model_->getObjectByRow(row);
-    if (beforeObj) {
+    if (auto beforeObj = model_->getObjectByRow(row)) {
         before_ = beforeObj->clone();
-        id_     = before_.id;
+        uid_    = before_.uid;
 
         QModelIndex idx = model_->index(row, 0);
         colorBefore_ = model_->data(idx, SceneObjectModel::ColorRole).value<QColor>();
     }
 }
 
-void ChangeSceneObjectCommand::redo() {
-    qDebug() << "Redo change ";
-    model_->debugPrintAll();
-
-    setAllRoles(model_.get(), id_, after_.clone(), colorAfter_);
+void ChangeSceneObjectCommand::redo()
+{
+    setAllRoles(model_.get(), uid_, after_.clone(), colorAfter_);
     updateCallback_();
     rebuildEditUiCallback_();
+    qDebug() << "Redo change";  model_->debugPrintAll();
 }
 
-void ChangeSceneObjectCommand::undo() {
-    qDebug() << "Undo change ";
-    model_->debugPrintAll();
-
-    setAllRoles(model_.get(), id_, before_.clone(), colorBefore_);
+void ChangeSceneObjectCommand::undo()
+{
+    setAllRoles(model_.get(), uid_, before_.clone(), colorBefore_);
     updateCallback_();
     rebuildEditUiCallback_();
+    qDebug() << "Undo change";  model_->debugPrintAll();
 }

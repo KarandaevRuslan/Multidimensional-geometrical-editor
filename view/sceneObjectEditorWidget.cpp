@@ -28,6 +28,8 @@ SceneObjectEditorWidget::SceneObjectEditorWidget(QWidget *parent)
     auto *lay = new QFormLayout(this);
 
     idLabel_   = new QLabel(this);
+    uidLabel_   = new QLabel(this);
+    uidTextLabel_ = new QLabel(tr("UID:"), this);
     nameEdit_  = new QLineEdit(this);
     connect(nameEdit_,&QLineEdit::editingFinished,
             this,&SceneObjectEditorWidget::nameEditingFinished);
@@ -99,6 +101,7 @@ SceneObjectEditorWidget::SceneObjectEditorWidget(QWidget *parent)
 
 
     lay->addRow(tr("ID:"),           idLabel_);
+    lay->addRow(uidTextLabel_, uidLabel_);
     lay->addRow(tr("Name:"),         nameEdit_);
     lay->addRow(tr("Color:"),        colorBtn_);
     lay->addRow(rotGroupBox_);
@@ -135,6 +138,7 @@ void SceneObjectEditorWidget::rebuildUiFromCurrent()
 
     /* trivial fields */
     idLabel_->setText(QString::number(cur_->id));
+    uidLabel_->setText(cur_->uid.toString(QUuid::WithoutBraces));
     nameEdit_->setText(cur_->name);
     colorBtn_->setStyleSheet(css(curColorGetter_()));
 

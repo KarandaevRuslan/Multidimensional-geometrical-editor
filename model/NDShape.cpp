@@ -88,15 +88,32 @@ NDShape NDShape::clone(std::size_t newDim) const {
         qWarning() << msg;
         throw std::invalid_argument(msg.toStdString());
     }
+
     NDShape cloned(newDim);
+    // copy over edges and counter
     cloned.edges_ = edges_;
     cloned.vertexCounter_ = vertexCounter_;
 
+    // adjust each vertex's coords to the new dimension
     for (const auto& [id, oldCoords] : vertices_) {
-        cloned.vertices_[id] = std::vector<double>(newDim, 0.0);
+        std::vector<double> newCoords;
+        newCoords.reserve(newDim);
+
+        // copy as many old coords as will fit
+        std::size_t copyCount = std::min(oldCoords.size(), newDim);
+        for (std::size_t i = 0; i < copyCount; ++i)
+            newCoords.push_back(oldCoords[i]);
+
+        // zero-fill any extra dimensions
+        for (std::size_t i = copyCount; i < newDim; ++i)
+            newCoords.push_back(0.0);
+
+        cloned.vertices_[id] = std::move(newCoords);
     }
+
     return cloned;
 }
+
 
 void NDShape::removeVertex(std::size_t vertexId) {
     auto it = vertices_.find(vertexId);
@@ -221,4 +238,13 @@ void NDShape::updateFromAdjacencyMatrix(const std::vector<std::vector<int>>& mat
             }
         }
     }
+}
+
+const std::vector<double>& NDShape::getVertex(std::size_t vertexId) const
+{
+    auto it = vertices_.find(vertexId);
+    if (it == vertices_.end()) {
+        throw std::out_of_range("NDShape::getVertex: vertex ID not found");
+    }
+    return it->second;
 }

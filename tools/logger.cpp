@@ -34,10 +34,9 @@ void Logger::log(QtMsgType type, const QMessageLogContext &context, const QStrin
     case QtFatalMsg:    level = "FATAL";    break;
     }
 
-    QString logMessage = QString("%1 [%2] (%3:%4, %5): %6")
+    QString logMessage = QString("%1 [%2] (%3, %4): %5")
                              .arg(timeStamp)
                              .arg(level)
-                             .arg(context.file ? context.file : "")
                              .arg(context.line)
                              .arg(context.function ? context.function : "")
                              .arg(msg);
