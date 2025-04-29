@@ -33,124 +33,117 @@ jobs:
             artifact_name: NDEditor-macos-x86_64
 
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
-    - name: Install Qt
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: 6.6.3
-        host:   ${{ matrix.host }}
-        target: desktop
-        arch:   ${{ matrix.arch }}
-        archives: "qtbase qttools"
-        cache:  true
+      # Linux: use distro Qt so ICU versions match perfectly
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qt6-base-dev qt6-tools-dev qtbase5-dev-tools \
+            ninja-build libgtest-dev
 
-    - name: Install build tools (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ninja-build libicu-dev
+      # Windows/macOS: install official Qt 6.6.3
+      - name: Install Qt (Windows & macOS)
+        if: runner.os != 'Linux'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.6.3
+          host:   ${{ matrix.host }}
+          target: desktop
+          arch:   ${{ matrix.arch }}
+          archives: "qtbase qttools"
+          cache:  true
 
-    - name: ICU compatibility symlinks (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        ICU_LIB=/usr/lib/x86_64-linux-gnu
-        sudo ln -sf $ICU_LIB/libicui18n.so    $ICU_LIB/libicui18n.so.56
-        sudo ln -sf $ICU_LIB/libicuuc.so      $ICU_LIB/libicuuc.so.56
-        sudo ln -sf $ICU_LIB/libicudata.so    $ICU_LIB/libicudata.so.56
+      # On macOS we still need Ninja
+      - name: Install Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew update
+          brew install ninja
 
-    - name: Install Ninja (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew update
-        brew install ninja
+      # 1) Configure & build Debug + tests
+      - name: Configure (Debug + tests)
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cmake -S . -B "${{ matrix.build_dir }}" \
+              -G "Visual Studio 17 2022" -A x64 \
+              -DCMAKE_BUILD_TYPE=Debug
+          else
+            cmake -S . -B "${{ matrix.build_dir }}" \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Debug \
+              ${{ matrix.cmake_extra }}
+          fi
 
-    # ────────────────────────────────────────────────────────
-    # 1) Debug configure + test build
-    - name: Configure (Debug + tests)
-      shell: bash
-      run: |
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cmake -S . -B "${{ matrix.build_dir }}" \
-            -G "Visual Studio 17 2022" \
-            -A x64 \
-            -DCMAKE_BUILD_TYPE=Debug
-        else
-          cmake -S . -B "${{ matrix.build_dir }}" \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug \
-            ${{ matrix.cmake_extra }}
-        fi
+      - name: Build tests
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cmake --build "${{ matrix.build_dir }}" --config Debug --target Test
+          else
+            cmake --build "${{ matrix.build_dir }}" --target Test
+          fi
 
-    - name: Build tests
-      shell: bash
-      run: |
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cmake --build "${{ matrix.build_dir }}" --config Debug --target Test
-        else
-          cmake --build "${{ matrix.build_dir }}" --target Test
-        fi
+      - name: Run Google Tests
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            ./"${{ matrix.build_dir }}"/Debug/Test.exe --gtest_color=yes
+          else
+            ./"${{ matrix.build_dir }}"/Test --gtest_color=yes
+          fi
 
-    - name: Run Google Tests (gtest binary)
-      shell: bash
-      run: |
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          ./build/Debug/Test.exe --gtest_color=yes
-        else
-          ./build/Test --gtest_color=yes
-        fi
+      # 2) Configure & build Release
+      - name: Configure (Release)
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cmake -S . -B "${{ matrix.build_dir }}/rel" \
+              -G "Visual Studio 17 2022" -A x64 \
+              -DCMAKE_BUILD_TYPE=Release
+          else
+            cmake -S . -B "${{ matrix.build_dir }}/rel" \
+              -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              ${{ matrix.cmake_extra }}
+          fi
 
-    # ────────────────────────────────────────────────────────
-    # 2) Release configure + editor build
-    - name: Configure (Release)
-      shell: bash
-      run: |
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cmake -S . -B "${{ matrix.build_dir }}/rel" \
-            -G "Visual Studio 17 2022" \
-            -A x64 \
-            -DCMAKE_BUILD_TYPE=Release
-        else
-          cmake -S . -B "${{ matrix.build_dir }}/rel" \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            ${{ matrix.cmake_extra }}
-        fi
+      - name: Build NDEditor (Release)
+        shell: bash
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            cmake --build "${{ matrix.build_dir }}/rel" --config Release --target NDEditor
+          else
+            cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
+          fi
 
-    - name: Build NDEditor (Release)
-      shell: bash
-      run: |
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          cmake --build "${{ matrix.build_dir }}/rel" --config Release --target NDEditor
-        else
-          cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
-        fi
+      # 3) Package
+      - name: Package artefact
+        shell: bash
+        run: |
+          cd "${{ matrix.build_dir }}/rel"
+          case "$RUNNER_OS" in
+            Windows)
+              7z a "../${{ matrix.artifact_name }}.zip" Release/NDEditor.exe
+              ;;
+            macOS)
+              tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
+              ;;
+            *)
+              tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor
+              ;;
+          esac
 
-    # ────────────────────────────────────────────────────────
-    # 3) Package artefact
-    - name: Package artefact
-      shell: bash
-      run: |
-        cd "${{ matrix.build_dir }}/rel"
-        case "$RUNNER_OS" in
-          Windows)
-            # Release binary lives under Release/
-            7z a "../${{ matrix.artifact_name }}.zip" Release/NDEditor.exe
-            ;;
-          macOS)
-            tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
-            ;;
-          *)
-            tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor
-            ;;
-        esac
-
-    - name: Upload artefact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ matrix.artifact_name }}
-        path: |
-          ${{ matrix.build_dir }}/${{ matrix.artifact_name }}.zip
-          ${{ matrix.build_dir }}/${{ matrix.artifact_name }}.tar.gz
-        if-no-files-found: error
+      # 4) Upload
+      - name: Upload artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            ${{ matrix.build_dir }}/rel/${{ matrix.artifact_name }}.zip
+            ${{ matrix.build_dir }}/rel/${{ matrix.artifact_name }}.tar.gz
+          if-no-files-found: error
