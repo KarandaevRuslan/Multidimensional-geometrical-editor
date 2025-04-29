@@ -10,13 +10,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 
-if(UNIX AND NOT APPLE)
-  find_package(ICU REQUIRED COMPONENTS i18n uc data)
-  list(APPEND COMMON_LINK_LIBS ICU::i18n ICU::uc ICU::data)
-else()
-  set(COMMON_LINK_LIBS "")
-endif()
-
 set(TS_FILES
     NDEditor_en_US.ts
     NDEditor_ru_RU.ts
@@ -115,7 +108,6 @@ target_link_libraries(NDEditor PRIVATE
     Qt${QT_VERSION_MAJOR}::OpenGL
     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
     Qt${QT_VERSION_MAJOR}::UiTools
-    ${COMMON_LINK_LIBS}
 )
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
@@ -177,7 +169,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug"
   target_link_libraries(Test PRIVATE
     GTest::gtest_main
     Qt${QT_VERSION_MAJOR}::Widgets
-    ${COMMON_LINK_LIBS}
   )
 
   include(GoogleTest)
