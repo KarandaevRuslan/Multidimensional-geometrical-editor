@@ -14,6 +14,7 @@
 #include "../tools/SceneSerialization.h"
 #include <QFileDialog>
 #include "../model/opengl/input/sceneInputHandler.h"
+#include <QItemSelectionModel>
 
 MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     : QWidget(parent)
@@ -136,6 +137,22 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     // Model is created but will be assigned scene/colorificator later:
     model_ = std::make_shared<SceneObjectModel>(scene_, sceneColorificator_, this);
     listView_->setModel(model_.get());
+
+    listView_->setSelectionMode(QAbstractItemView::SingleSelection);
+    listView_->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    connect(listView_->selectionModel(),
+            &QItemSelectionModel::currentChanged,
+            this,
+            [lv = listView_](const QModelIndex &cur, const QModelIndex &)
+            {
+                if (!cur.isValid()) {
+                    lv->selectionModel()->clear();
+                } else {
+                    lv->selectionModel()->select(cur,
+                                                 QItemSelectionModel::ClearAndSelect);
+                }
+            });
     connect(listView_->selectionModel(), &QItemSelectionModel::currentChanged,
             this, &MainWindowTabWidget::onCurrentRowChanged);
 }

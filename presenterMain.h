@@ -27,7 +27,7 @@ public:
     ~PresenterMain();
 
     /// Called when a new tab is to be created.
-    void createNewTab();
+    void createNewTab(bool includeExample);
 
     // Shared clipboard variables across tabs.
     std::shared_ptr<SceneObject> copyBuffer_;

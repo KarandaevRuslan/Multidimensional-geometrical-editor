@@ -31,8 +31,8 @@ MainWindow::MainWindow(QWidget* parent)
     connect(tabWidget_, &QTabWidget::currentChanged,
             this, &MainWindow::refreshEditMenu);
 
-    connect(ui_->actionNew, &QAction::triggered,
-            this, &MainWindow::addNewSceneTab);
+    connect(ui_->actionNew, &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->createNewTab(false);});
+    connect(ui_->actionExampleScene, &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->createNewTab(true);});
     connect(ui_->actionSave,   &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->saveCurrentTab(false);});
     connect(ui_->actionSaveAs, &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->saveCurrentTab(true);});
     connect(ui_->actionOpen,   &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->openSceneInNewTab();});
@@ -73,14 +73,6 @@ MainWindow::~MainWindow()
 void MainWindow::setPresenterMain(PresenterMain *presenterMain)
 {
     presenterMain_ = presenterMain;
-}
-
-void MainWindow::addNewSceneTab()
-{
-    if (presenterMain_) {
-        // Delegate the creation of a new tab (and its sub-presenter) to PresenterMain.
-        presenterMain_->createNewTab();
-    }
 }
 
 void MainWindow::closeEvent(QCloseEvent* event)

@@ -40,7 +40,6 @@ public:
     void updateStatusBar();
 
 private slots:
-    void addNewSceneTab();
     void refreshEditMenu(int tabIndex);
     void showAboutDialog();
 

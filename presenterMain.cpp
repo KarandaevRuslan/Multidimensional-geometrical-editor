@@ -53,14 +53,14 @@ bool PresenterMain::hasDirtyTabs() const {
     return false;
 }
 
-void PresenterMain::createNewTab() {
+void PresenterMain::createNewTab(bool includeExample) {
     // Create a new MainWindowTabWidget.
     auto tabWidget = new MainWindowTabWidget();
 
     // Pass the common scene and colorificator to the tab widget.
     std::shared_ptr<Scene> scene = std::make_shared<Scene>();
     std::shared_ptr<SceneColorificator> sceneColorificator = std::make_shared<SceneColorificator>();
-    ::setupScene(scene, sceneColorificator);
+    if(includeExample) ::setupScene(scene, sceneColorificator);
 
     // Pass the shared delegate.
     tabWidget->setDelegate(sharedDelegate_);
