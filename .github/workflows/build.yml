@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            qt_arch: linux_x64
+            cmake_extra: ""
+            build_dir: build
+            artifact_name: NDEditor-linux-x86_64
+          - os: windows-latest
+            qt_arch: win64_msvc2019_64
+            cmake_extra: "-A x64"
+            build_dir: build
+            artifact_name: NDEditor-windows-x86_64
+          - os: macos-latest
+            qt_arch: macos
+            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
+            build_dir: build
+            artifact_name: NDEditor-macos-x86_64
+
+    steps:
+    # ---------- checkout ------------------------------------------------------
+    - name: Checkout source
+      uses: actions/checkout@v4
+
+    # ---------- Qt ------------------------------------------------------------
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: 6.7.1        # pick the Qt you require
+        host: ${{ matrix.qt_arch }}
+        arch: x64
+        cache: true
+
+    # (Linux only) ensure we have essential build tools & ninja
+    - name: Install build requirements (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ninja-build
+
+    # ---------- CMake configure + TEST build ---------------------------------
+    - name: Configure (Debug + tests)
+      run: >
+        cmake -S . -B ${{ matrix.build_dir }}
+        -GNinja
+        -DCMAKE_BUILD_TYPE=Debug
+        ${{ matrix.cmake_extra }}
+
+    - name: Build tests
+      run: cmake --build ${{ matrix.build_dir }} --target Test
+
+    - name: Run Google Tests
+      run: ctest --test-dir ${{ matrix.build_dir }} --output-on-failure
+
+    # ---------- Release build (only if tests passed) --------------------------
+    - name: Re-configure (Release)
+      run: >
+        cmake -S . -B ${{ matrix.build_dir }}/rel
+        -GNinja
+        -DCMAKE_BUILD_TYPE=Release
+        ${{ matrix.cmake_extra }}
+
+    - name: Build NDEditor (Release)
+      run: cmake --build ${{ matrix.build_dir }}/rel --target NDEditor
+
+    # ---------- Package & upload ---------------------------------------------
+    - name: Package artefact
+      shell: bash
+      run: |
+        cd ${{ matrix.build_dir }}/rel
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          7z a ../${{ matrix.artifact_name }}.zip NDEditor.exe
+        else
+          tar czf ../${{ matrix.artifact_name }}.tar.gz NDEditor
+        fi
+
+    - name: Upload artefact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: |
+          ${{ matrix.build_dir }}/${{ matrix.artifact_name }}.zip
+          ${{ matrix.build_dir }}/${{ matrix.artifact_name }}.tar.gz
+        if-no-files-found: error
