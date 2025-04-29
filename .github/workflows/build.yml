@@ -1,3 +1,4 @@
+# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -16,86 +17,93 @@ jobs:
           - os: ubuntu-latest
             host: linux
             arch: gcc_64
+            generator: Ninja
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
           - os: windows-latest
             host: windows
             arch: win64_msvc2019_64
+            generator: "Visual Studio 16 2019"
             cmake_extra: "-A x64"
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
           - os: macos-latest
             host: mac
             arch: clang_64
+            generator: Ninja
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
 
     steps:
-    #--------------------------------------------------------------------
+    # 1) checkout
     - name: Checkout source
       uses: actions/checkout@v4
 
-    #--------------------------------------------------------------------
-    # Install Qt 6.6.3 + the two archives we actually need
+    # 2) Qt
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.6.3           # LTS; works everywhere
+        version: 6.6.3
         host:   ${{ matrix.host }}
         target: desktop
         arch:   ${{ matrix.arch }}
-        archives: "qtbase qttools"   # UiTools lives in qttools
+        archives: "qtbase qttools"
         cache:  true
 
-    #--------------------------------------------------------------------
-    # Extra build tools (Linux only)
-    - name: Install build requirements (Linux)
+    # 3) Ninja on Linux/macOS only
+    - name: Install build tools (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y ninja-build
+    - name: Install Ninja (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew update
+        brew install ninja
 
-    #--------------------------------------------------------------------
-    # Configure + build the tests (Debug)
+    # 4) Configure, Build & Test (Debug)
     - name: Configure (Debug + tests)
-      run: >
-        cmake -S . -B ${{ matrix.build_dir }}
-        -GNinja
-        -DCMAKE_BUILD_TYPE=Debug
-        ${{ matrix.cmake_extra }}
-
+      run: |
+        cmake -S . -B "${{ matrix.build_dir }}" \
+          -G "${{ matrix.generator }}" \
+          -DCMAKE_BUILD_TYPE=Debug \
+          ${{ matrix.cmake_extra }}
     - name: Build tests
-      run: cmake --build ${{ matrix.build_dir }} --target Test
-
+      run: cmake --build "${{ matrix.build_dir }}" --target Test
     - name: Run Google Tests
-      run: ctest --test-dir ${{ matrix.build_dir }} --output-on-failure
+      run: ctest --test-dir "${{ matrix.build_dir }}" --output-on-failure
 
-    #--------------------------------------------------------------------
-    # Release build (only if tests pass)
-    - name: Re-configure (Release)
-      run: >
-        cmake -S . -B ${{ matrix.build_dir }}/rel
-        -GNinja
-        -DCMAKE_BUILD_TYPE=Release
-        ${{ matrix.cmake_extra }}
-
+    # 5) Configure & Build (Release)
+    - name: Configure (Release)
+      run: |
+        cmake -S . -B "${{ matrix.build_dir }}/rel" \
+          -G "${{ matrix.generator }}" \
+          -DCMAKE_BUILD_TYPE=Release \
+          ${{ matrix.cmake_extra }}
     - name: Build NDEditor (Release)
-      run: cmake --build ${{ matrix.build_dir }}/rel --target NDEditor
+      run: cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
 
-    #--------------------------------------------------------------------
-    # Package & upload
+    # 6) Package
     - name: Package artefact
       shell: bash
       run: |
-        cd ${{ matrix.build_dir }}/rel
-        if [[ "${{ runner.os }}" == "Windows" ]]; then
-          7z a ../${{ matrix.artifact_name }}.zip NDEditor.exe
-        else
-          tar czf ../${{ matrix.artifact_name }}.tar.gz NDEditor
-        fi
+        cd "${{ matrix.build_dir }}/rel"
+        case "${{ runner.os }}" in
+          Windows)
+            7z a "../${{ matrix.artifact_name }}.zip" NDEditor.exe
+            ;;
+          macOS)
+            tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
+            ;;
+          *)
+            tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor
+            ;;
+        esac
 
+    # 7) Upload
     - name: Upload artefact
       uses: actions/upload-artifact@v4
       with:
