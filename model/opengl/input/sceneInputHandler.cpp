@@ -8,7 +8,6 @@
 SceneInputHandler::SceneInputHandler(QObject *parent)
     : QObject(parent)
     , freeLookMode_(false)
-    , ignoreNextMouseMove_(true)
     , forwardPressed_(false)
     , backwardPressed_(false)
     , mouseButtonPressed_(false)
@@ -77,33 +76,33 @@ void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*ca
 
 void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
 {
-    if (!freeLookMode_ && !mouseButtonPressed_) {
+    if (!freeLookMode_ && !mouseButtonPressed_)
         return;
+
+    const QPoint  globalPos = event->globalPosition().toPoint();
+
+    if (isWindows) {                            // Windows
+        int dx = globalPos.x() - centerScreenPos_.x();
+        int dy = globalPos.y() - centerScreenPos_.y();
+        if (dx == 0 && dy == 0)
+            return;
+
+        camera.setYaw  (camera.yaw()   - dx * kMouseSensitivity);
+        camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
+
+        QCursor::setPos(centerScreenPos_);
+    } else {                                    // Linux or MacOS
+        static QPoint lastPos = globalPos;
+        int dx = globalPos.x() - lastPos.x();
+        int dy = globalPos.y() - lastPos.y();
+        lastPos = globalPos;
+
+        if (dx == 0 && dy == 0)
+            return;
+
+        camera.setYaw  (camera.yaw()   - dx * kMouseSensitivity);
+        camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
     }
-
-    if (ignoreNextMouseMove_) {
-        ignoreNextMouseMove_ = false;
-        return;
-    }
-
-    QPoint globalPos = event->globalPosition().toPoint();
-    int dx = globalPos.x() - centerScreenPos_.x();
-    int dy = globalPos.y() - centerScreenPos_.y();
-
-    if (dx == 0 && dy == 0) {
-        // Possibly a warp back to center
-        return;
-    }
-
-    float newYaw   = camera.yaw()   - dx * kMouseSensitivity;
-    float newPitch = camera.pitch() - dy * kMouseSensitivity;
-
-    camera.setYaw(newYaw);
-    camera.setPitch(newPitch);
-
-    // Warp the mouse back to center
-    ignoreNextMouseMove_ = true;
-    QCursor::setPos(centerScreenPos_);
 }
 
 void SceneInputHandler::mousePressEvent(QMouseEvent* event)

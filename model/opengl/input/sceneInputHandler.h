@@ -115,7 +115,6 @@ signals:
 
 private:
     bool freeLookMode_;       ///< Indicates whether free-look mode is active
-    bool ignoreNextMouseMove_;
     QPoint centerScreenPos_;  ///< Stores the center position of the widget for mouse warping
 
     // Key states
@@ -133,6 +132,14 @@ private:
 
     // For mouse look
     static constexpr float kMouseSensitivity = 0.3f; ///< Mouse sensitivity for free-look
+    QPoint lastGlobalPos_;
+
+    #if defined(Q_OS_WINDOWS)
+        static constexpr bool isWindows = true;
+    #else
+        static constexpr bool isWindows = false;
+    #endif
+
 };
 
 #endif // SCENE_INPUT_HANDLER_H
