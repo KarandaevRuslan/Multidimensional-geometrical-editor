@@ -6,8 +6,8 @@
 #include <QString>
 #include <QUuid>
 #include "NDShape.h"
-#include "Projection.h"
-#include "Rotator.h"
+#include "projection.h"
+#include "rotator.h"
 
 /**
  * @brief Structure representing a scene object.

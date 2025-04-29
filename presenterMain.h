@@ -1,7 +1,7 @@
 #ifndef PRESENTER_MAIN_H
 #define PRESENTER_MAIN_H
 
-#include "view/mainwindow.h"
+#include "view/mainWindow.h"
 #include "model/scene.h"
 #include "model/sceneColorificator.h"
 #include <memory>

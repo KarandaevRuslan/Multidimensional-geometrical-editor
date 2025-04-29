@@ -5,7 +5,7 @@
 #include <memory>
 #include <vector>
 #include <QUuid>
-#include "../../model/Scene.h"
+#include "../../model/scene.h"
 #include "../../model/sceneColorificator.h"
 
 /**
