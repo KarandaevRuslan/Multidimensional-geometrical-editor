@@ -1,5 +1,5 @@
 #include "presenterMain.h"
-#include "view/mainwindow.h"
+#include "view/mainWindow.h"
 #include "view/mainWindowTabWidget.h"
 #include "model/scene.h"
 #include "model/sceneColorificator.h"
