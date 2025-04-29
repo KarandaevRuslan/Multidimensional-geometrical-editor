@@ -37,11 +37,9 @@ jobs:
             artifact_name: NDEditor-macos-x86_64
 
     steps:
-    # 1) checkout
     - name: Checkout source
       uses: actions/checkout@v4
 
-    # 2) Qt
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -52,41 +50,42 @@ jobs:
         archives: "qtbase qttools"
         cache:  true
 
-    # 3) Ninja on Linux/macOS only
     - name: Install build tools (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y ninja-build
+        sudo apt-get install -y ninja-build libicu-dev
+
     - name: Install Ninja (macOS)
       if: runner.os == 'macOS'
       run: |
         brew update
         brew install ninja
 
-    # 4) Configure, Build & Test (Debug)
+    # 1) Debug configure + test build
     - name: Configure (Debug + tests)
-      run: |
-        cmake -S . -B "${{ matrix.build_dir }}" \
-          -G "${{ matrix.generator }}" \
-          -DCMAKE_BUILD_TYPE=Debug \
-          ${{ matrix.cmake_extra }}
+      run: cmake -S . -B "${{ matrix.build_dir }}" \
+                 -G "${{ matrix.generator }}" \
+                 -DCMAKE_BUILD_TYPE=Debug \
+                 ${{ matrix.cmake_extra }}
+
     - name: Build tests
       run: cmake --build "${{ matrix.build_dir }}" --target Test
+
     - name: Run Google Tests
       run: ctest --test-dir "${{ matrix.build_dir }}" --output-on-failure
 
-    # 5) Configure & Build (Release)
+    # 2) Release configure + editor build
     - name: Configure (Release)
-      run: |
-        cmake -S . -B "${{ matrix.build_dir }}/rel" \
-          -G "${{ matrix.generator }}" \
-          -DCMAKE_BUILD_TYPE=Release \
-          ${{ matrix.cmake_extra }}
+      run: cmake -S . -B "${{ matrix.build_dir }}/rel" \
+                 -G "${{ matrix.generator }}" \
+                 -DCMAKE_BUILD_TYPE=Release \
+                 ${{ matrix.cmake_extra }}
+
     - name: Build NDEditor (Release)
       run: cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
 
-    # 6) Package
+    # 3) Package
     - name: Package artefact
       shell: bash
       run: |
@@ -96,6 +95,9 @@ jobs:
             7z a "../${{ matrix.artifact_name }}.zip" NDEditor.exe
             ;;
           macOS)
+            # NOTE: your code currently fails on macOS with a QDialog copy-ctor error.
+            #       You’ll need to adjust your CMakeLists / header to avoid generating
+            #       a moc‐meta‐type for a non‐copyable QDialog subclass.
             tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
             ;;
           *)
@@ -103,7 +105,6 @@ jobs:
             ;;
         esac
 
-    # 7) Upload
     - name: Upload artefact
       uses: actions/upload-artifact@v4
       with:
