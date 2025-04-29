@@ -10,6 +10,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 
+if(UNIX AND NOT APPLE)
+  find_package(ICU REQUIRED COMPONENTS i18n uc data)
+  list(APPEND COMMON_LINK_LIBS ICU::i18n ICU::uc ICU::data)
+else()
+  set(COMMON_LINK_LIBS "")
+endif()
+
 set(TS_FILES
     NDEditor_en_US.ts
     NDEditor_ru_RU.ts
@@ -62,13 +69,6 @@ set(PROJECT_SOURCES
 
 if (WIN32)
   set(APP_ICON_RC "${CMAKE_SOURCE_DIR}/resources.rc")
-endif()
-
-if(UNIX AND NOT APPLE)
-  find_package(ICU REQUIRED COMPONENTS i18n uc data)
-  list(APPEND COMMON_LINK_LIBS ICU::i18n ICU::uc ICU::data)
-else()
-  set(COMMON_LINK_LIBS "")
 endif()
 
 # macOS: tell CMake which .icns to bundle
