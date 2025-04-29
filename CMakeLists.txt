@@ -11,8 +11,11 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools UiTools 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 
 if(UNIX AND NOT APPLE)
-  find_package(ICU REQUIRED COMPONENTS i18n uc data)
-  list(APPEND COMMON_LINK_LIBS ICU::i18n ICU::uc ICU::data)
+  find_package(ICU REQUIRED COMPONENTS uc i18n data)
+  list(APPEND COMMON_LINK_LIBS ICU::uc ICU::i18n ICU::data)
+  set(CMAKE_EXE_LINKER_FLAGS
+      "${CMAKE_EXE_LINKER_FLAGS} -licuuc -licui18n -licudata"
+  )
 else()
   set(COMMON_LINK_LIBS "")
 endif()
