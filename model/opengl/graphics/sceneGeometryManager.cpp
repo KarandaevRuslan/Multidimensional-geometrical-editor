@@ -224,7 +224,7 @@ void SceneGeometryManager::updateTicksData()
                     ticks.push_back({tick + QVector3D(0,  -tickOffset_, 0), {}, ticksColor_});
                     break;
                 default:
-                    qFatal() << "Unknown axis index: " << axisIndex;
+                    qCritical() << "Unknown axis index:" << axisIndex;
                     break;
             }
         }

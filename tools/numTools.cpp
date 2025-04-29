@@ -1,5 +1,6 @@
 #include "numTools.h"
-#include <iostream>
+#include <cmath>
+#include <limits>
 
 bool isInteger(float value) {
     float intPart;

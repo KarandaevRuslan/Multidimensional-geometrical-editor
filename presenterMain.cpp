@@ -323,6 +323,6 @@ static void setupScene(std::shared_ptr<Scene> scene,
         auto uid2 = scene->addObject(QUuid::createUuid(), 2, "Simplex5D", simplex5D, perspectiveProj, {rotatorSimplex}, {3, 3, 3}, {5, 5, 5});
         sceneColorificator->setColorForObject(uid2, QColor(28,98,15));
     } catch (const std::exception& ex) {
-        qFatal() << "Exception occurred: " << ex.what();
+        qCritical() << "Exception occurred:" << ex.what();
     }
 }
