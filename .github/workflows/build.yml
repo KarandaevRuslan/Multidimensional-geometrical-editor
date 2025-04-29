@@ -1,4 +1,3 @@
-# .github/workflows/ci.yml
 name: CI
 
 on:
@@ -17,16 +16,19 @@ jobs:
           - os: ubuntu-latest
             host: linux
             arch: gcc_64
+            cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
           - os: windows-latest
             host: windows
             arch: win64_msvc2019_64
+            cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
           - os: macos-latest
             host: mac
             arch: clang_64
+            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
 
@@ -50,6 +52,14 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y ninja-build libicu-dev
 
+    - name: ICU compatibility symlinks (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        ICU_LIB=/usr/lib/x86_64-linux-gnu
+        sudo ln -sf $ICU_LIB/libicui18n.so    $ICU_LIB/libicui18n.so.56
+        sudo ln -sf $ICU_LIB/libicuuc.so      $ICU_LIB/libicuuc.so.56
+        sudo ln -sf $ICU_LIB/libicudata.so    $ICU_LIB/libicudata.so.56
+
     - name: Install Ninja (macOS)
       if: runner.os == 'macOS'
       run: |
@@ -69,7 +79,8 @@ jobs:
         else
           cmake -S . -B "${{ matrix.build_dir }}" \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Debug
+            -DCMAKE_BUILD_TYPE=Debug \
+            ${{ matrix.cmake_extra }}
         fi
 
     - name: Build tests
@@ -81,13 +92,13 @@ jobs:
           cmake --build "${{ matrix.build_dir }}" --target Test
         fi
 
-    - name: Run Google Tests
+    - name: Run Google Tests (gtest binary)
       shell: bash
       run: |
         if [[ "$RUNNER_OS" == "Windows" ]]; then
-          ctest --test-dir "${{ matrix.build_dir }}" --config Debug --output-on-failure
+          ./build/Debug/Test.exe --gtest_color=yes
         else
-          ctest --test-dir "${{ matrix.build_dir }}" --output-on-failure
+          ./build/Test --gtest_color=yes
         fi
 
     # ────────────────────────────────────────────────────────
@@ -103,7 +114,8 @@ jobs:
         else
           cmake -S . -B "${{ matrix.build_dir }}/rel" \
             -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release \
+            ${{ matrix.cmake_extra }}
         fi
 
     - name: Build NDEditor (Release)
@@ -116,7 +128,7 @@ jobs:
         fi
 
     # ────────────────────────────────────────────────────────
-    # 3) Package & Upload
+    # 3) Package artefact
     - name: Package artefact
       shell: bash
       run: |
@@ -126,8 +138,6 @@ jobs:
             7z a "../${{ matrix.artifact_name }}.zip" NDEditor.exe
             ;;
           macOS)
-            # Reminder: your AddSceneObjectDialog meta‐type issue still needs
-            # fixing in C++ (moc is trying to copy a non-copyable QDialog).
             tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
             ;;
           *)
