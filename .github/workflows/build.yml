@@ -33,19 +33,15 @@ jobs:
             artifact_name: NDEditor-macos-x86_64
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        name: Checkout source
 
-      # Linux: use distro Qt so ICU versions match perfectly
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            qt6-base-dev qt6-tools-dev qtbase5-dev-tools \
-            ninja-build libgtest-dev
+          sudo apt-get install -y qt6-base-dev qt6-tools-dev qtbase5-dev-tools ninja-build libgtest-dev
 
-      # Windows/macOS: install official Qt 6.6.3
       - name: Install Qt (Windows & macOS)
         if: runner.os != 'Linux'
         uses: jurplel/install-qt-action@v4
@@ -57,14 +53,13 @@ jobs:
           archives: "qtbase qttools"
           cache:  true
 
-      # On macOS we still need Ninja
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
         run: |
           brew update
           brew install ninja
 
-      # 1) Configure & build Debug + tests
+      # 1) Debug + tests
       - name: Configure (Debug + tests)
         shell: bash
         run: |
@@ -97,7 +92,7 @@ jobs:
             ./"${{ matrix.build_dir }}"/Test --gtest_color=yes
           fi
 
-      # 2) Configure & build Release
+      # 2) Release
       - name: Configure (Release)
         shell: bash
         run: |
@@ -121,24 +116,25 @@ jobs:
             cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
           fi
 
-      # 3) Package
+      # 3) Package into build/rel
       - name: Package artefact
         shell: bash
         run: |
           cd "${{ matrix.build_dir }}/rel"
           case "$RUNNER_OS" in
             Windows)
-              7z a "../${{ matrix.artifact_name }}.zip" Release/NDEditor.exe
+              # On Windows the EXE lives in Release/
+              7z a "${{ matrix.artifact_name }}.zip" Release/NDEditor.exe
               ;;
             macOS)
-              tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
+              tar czf "${{ matrix.artifact_name }}.tar.gz" NDEditor.app
               ;;
             *)
-              tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor
+              tar czf "${{ matrix.artifact_name }}.tar.gz" NDEditor
               ;;
           esac
 
-      # 4) Upload
+      # 4) Upload from build/rel
       - name: Upload artefact
         uses: actions/upload-artifact@v4
         with:
