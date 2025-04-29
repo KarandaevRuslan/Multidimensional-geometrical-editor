@@ -17,22 +17,16 @@ jobs:
           - os: ubuntu-latest
             host: linux
             arch: gcc_64
-            generator: Ninja
-            cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
           - os: windows-latest
             host: windows
             arch: win64_msvc2019_64
-            generator: "Visual Studio 16 2019"
-            cmake_extra: "-A x64"
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
           - os: macos-latest
             host: mac
             arch: clang_64
-            generator: Ninja
-            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
 
@@ -62,42 +56,78 @@ jobs:
         brew update
         brew install ninja
 
+    # ────────────────────────────────────────────────────────
     # 1) Debug configure + test build
     - name: Configure (Debug + tests)
-      run: cmake -S . -B "${{ matrix.build_dir }}" \
-                 -G "${{ matrix.generator }}" \
-                 -DCMAKE_BUILD_TYPE=Debug \
-                 ${{ matrix.cmake_extra }}
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cmake -S . -B "${{ matrix.build_dir }}" \
+            -G "Visual Studio 17 2022" \
+            -A x64 \
+            -DCMAKE_BUILD_TYPE=Debug
+        else
+          cmake -S . -B "${{ matrix.build_dir }}" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug
+        fi
 
     - name: Build tests
-      run: cmake --build "${{ matrix.build_dir }}" --target Test
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cmake --build "${{ matrix.build_dir }}" --config Debug --target Test
+        else
+          cmake --build "${{ matrix.build_dir }}" --target Test
+        fi
 
     - name: Run Google Tests
-      run: ctest --test-dir "${{ matrix.build_dir }}" --output-on-failure
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          ctest --test-dir "${{ matrix.build_dir }}" --config Debug --output-on-failure
+        else
+          ctest --test-dir "${{ matrix.build_dir }}" --output-on-failure
+        fi
 
+    # ────────────────────────────────────────────────────────
     # 2) Release configure + editor build
     - name: Configure (Release)
-      run: cmake -S . -B "${{ matrix.build_dir }}/rel" \
-                 -G "${{ matrix.generator }}" \
-                 -DCMAKE_BUILD_TYPE=Release \
-                 ${{ matrix.cmake_extra }}
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cmake -S . -B "${{ matrix.build_dir }}/rel" \
+            -G "Visual Studio 17 2022" \
+            -A x64 \
+            -DCMAKE_BUILD_TYPE=Release
+        else
+          cmake -S . -B "${{ matrix.build_dir }}/rel" \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+        fi
 
     - name: Build NDEditor (Release)
-      run: cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
+      shell: bash
+      run: |
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cmake --build "${{ matrix.build_dir }}/rel" --config Release --target NDEditor
+        else
+          cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
+        fi
 
-    # 3) Package
+    # ────────────────────────────────────────────────────────
+    # 3) Package & Upload
     - name: Package artefact
       shell: bash
       run: |
         cd "${{ matrix.build_dir }}/rel"
-        case "${{ runner.os }}" in
+        case "$RUNNER_OS" in
           Windows)
             7z a "../${{ matrix.artifact_name }}.zip" NDEditor.exe
             ;;
           macOS)
-            # NOTE: your code currently fails on macOS with a QDialog copy-ctor error.
-            #       You’ll need to adjust your CMakeLists / header to avoid generating
-            #       a moc‐meta‐type for a non‐copyable QDialog subclass.
+            # Reminder: your AddSceneObjectDialog meta‐type issue still needs
+            # fixing in C++ (moc is trying to copy a non-copyable QDialog).
             tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
             ;;
           *)
