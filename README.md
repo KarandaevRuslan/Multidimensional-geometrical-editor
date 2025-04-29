@@ -1,7 +1,7 @@
 ## Functionality
 1. Ability to create and edit n-dimensional figures (where 3 < n < 11);
 2. Ability to view and rotate three-dimensional projections of the resulting figures;
-3. Ability to generate random multidimensional figures;
+3. Ability to create different types of multidimensional figures;
 4. Ability to save the resulting figures to the file system.
 ---
 Below is development plan for the "Multidimensional Geometrical Editor" project, with all tasks focused on writing code and implementing functionality. The plan is divided into 7 sprints, each containing 3 tasks along with an estimated difficulty level.
@@ -84,15 +84,15 @@ Difficulty: Easy
 Add to editor widget shape edititng (dimension, vertices, edges).  
 Difficulty: Hard
 
-### Sprint 7. Module Integration, Testing, and Optimization
-* Task 7.1: Integrate all modules into a cohesive application  
-Write code that integrates all previously developed modules into a unified application with a clear interface.  
-Difficulty: Hard
+### Sprint 7. Final Touches: UI Enhancements, Status Bar, and CI/CD Setup
+* Task 7.1: Enhance the application menu  
+Extend the menu with new actions: create test scene, edit controls, and about section.  
+Difficulty: Medium
 
-* Task 7.2: Write integration tests  
-Implement a suite of tests simulating the complete workflow: creating a figure, editing it, projecting, saving, and loading.  
-Difficulty: Hard
+* Task 7.2: Add status bar information  
+Implement a status bar displaying useful information such as camera coordinates and context-sensitive hints.  
+Difficulty: Medium
 
-* Task 7.3: Refactor, optimize, and document the code  
-Perform code refactoring to enhance performance and readability, add detailed comments, and create documentation for all modules.  
+* Task 7.3: Set up GitHub Actions workflow  
+Create a GitHub workflow for automated building, testing, and linting of the project.  
 Difficulty: Medium
