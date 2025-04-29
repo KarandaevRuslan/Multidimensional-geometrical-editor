@@ -115,7 +115,7 @@ signals:
 
 private:
     bool freeLookMode_;       ///< Indicates whether free-look mode is active
-    bool firstMouseMove_;     ///< Tracks if the first mouse event should be ignored
+    bool ignoreNextMouseMove_;
     QPoint centerScreenPos_;  ///< Stores the center position of the widget for mouse warping
 
     // Key states

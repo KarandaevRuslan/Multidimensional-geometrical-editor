@@ -8,7 +8,7 @@
 SceneInputHandler::SceneInputHandler(QObject *parent)
     : QObject(parent)
     , freeLookMode_(false)
-    , firstMouseMove_(true)
+    , ignoreNextMouseMove_(true)
     , forwardPressed_(false)
     , backwardPressed_(false)
     , mouseButtonPressed_(false)
@@ -32,7 +32,6 @@ void SceneInputHandler::setFreeLookEnabled(bool enabled)
     if (enabled == freeLookMode_) return;
 
     freeLookMode_ = enabled;
-    firstMouseMove_ = true;  // next mouse move is ignored for large warp
     emit freeLookModeToggled(enabled);
 }
 
@@ -82,9 +81,8 @@ void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
         return;
     }
 
-    if (firstMouseMove_) {
-        QCursor::setPos(centerScreenPos_);
-        firstMouseMove_ = false;
+    if (ignoreNextMouseMove_) {
+        ignoreNextMouseMove_ = false;
         return;
     }
 
@@ -104,6 +102,7 @@ void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
     camera.setPitch(newPitch);
 
     // Warp the mouse back to center
+    ignoreNextMouseMove_ = true;
     QCursor::setPos(centerScreenPos_);
 }
 
