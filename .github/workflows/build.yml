@@ -116,30 +116,11 @@ jobs:
             cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
           fi
 
-      # 3) Package into build/rel
-      - name: Package artefact
-        shell: bash
-        run: |
-          cd "${{ matrix.build_dir }}/rel"
-          case "$RUNNER_OS" in
-            Windows)
-              # On Windows the EXE lives in Release/
-              7z a "${{ matrix.artifact_name }}.zip" Release/NDEditor.exe
-              ;;
-            macOS)
-              tar czf "${{ matrix.artifact_name }}.tar.gz" NDEditor.app
-              ;;
-            *)
-              tar czf "${{ matrix.artifact_name }}.tar.gz" NDEditor
-              ;;
-          esac
-
-      # 4) Upload from build/rel
+      # 3) Upload from build/rel
       - name: Upload artefact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            ${{ matrix.build_dir }}/rel/${{ matrix.artifact_name }}.zip
-            ${{ matrix.build_dir }}/rel/${{ matrix.artifact_name }}.tar.gz
+            ${{ matrix.build_dir }}/rel/**
           if-no-files-found: error
