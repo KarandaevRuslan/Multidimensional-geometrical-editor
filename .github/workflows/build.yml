@@ -135,7 +135,8 @@ jobs:
         cd "${{ matrix.build_dir }}/rel"
         case "$RUNNER_OS" in
           Windows)
-            7z a "../${{ matrix.artifact_name }}.zip" NDEditor.exe
+            # Release binary lives under Release/
+            7z a "../${{ matrix.artifact_name }}.zip" Release/NDEditor.exe
             ;;
           macOS)
             tar czf "../${{ matrix.artifact_name }}.tar.gz" NDEditor.app
