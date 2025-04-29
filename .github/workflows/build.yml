@@ -14,17 +14,22 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            qt_arch: linux_x64
+            host: linux 
+            arch: gcc_64  
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
+    
           - os: windows-latest
-            qt_arch: win64_msvc2019_64
+            host: windows   
+            arch: win64_msvc2019_64
             cmake_extra: "-A x64"
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
+    
           - os: macos-latest
-            qt_arch: macos
+            host: mac    
+            arch: clang_64 
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
@@ -38,10 +43,11 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.7.1        # pick the Qt you require
-        host: ${{ matrix.qt_arch }}
-        arch: x64
-        cache: true
+        version: 6.7.1
+        host:   ${{ matrix.host }} 
+        target: desktop  
+        arch:   ${{ matrix.arch }} 
+        cache:  true
 
     # (Linux only) ensure we have essential build tools & ninja
     - name: Install build requirements (Linux)
