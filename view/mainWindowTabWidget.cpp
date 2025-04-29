@@ -11,7 +11,7 @@
 #include <QShortcut>
 #include <QContextMenuEvent>
 #include <QMessageBox>
-#include "../tools/SceneSerialization.h"
+#include "../tools/sceneSerialization.h"
 #include <QFileDialog>
 #include "../model/opengl/input/sceneInputHandler.h"
 #include <QItemSelectionModel>
