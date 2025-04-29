@@ -16,6 +16,11 @@ SceneInputHandler::SceneInputHandler(QObject *parent)
     , upPressed_(false)
     , downPressed_(false)
     , shiftPressed_(false)
+    , turnLeftPressed_(false)
+    , turnRightPressed_(false)
+    , turnUpPressed_(false)
+    , turnDownPressed_(false)
+    , rotationSpeed_(1.0f)
     , moveSpeed_(0.5f)
     , zoomSpeed_(0.5f)
 {
@@ -28,7 +33,8 @@ bool SceneInputHandler::freeLookEnabled() const
 
 void SceneInputHandler::setFreeLookEnabled(bool enabled)
 {
-    if (enabled == freeLookMode_) return;
+    if (enabled == freeLookMode_)
+        return;
 
     freeLookMode_ = enabled;
     emit freeLookModeToggled(enabled);
@@ -42,67 +48,65 @@ void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*came
         return;
     }
 
+    switch (event->key()){
+        case Qt::Key_Left:    turnLeftPressed_  = true; break;
+        case Qt::Key_Right:   turnRightPressed_ = true; break;
+        case Qt::Key_Up:      turnUpPressed_    = true; break;
+        case Qt::Key_Down:    turnDownPressed_  = true; break;
+    }
+
     if (!freeLookMode_) {
         return;
     }
 
     switch (event->key()) {
-    case Qt::Key_W:       forwardPressed_  = true; break;
-    case Qt::Key_S:       backwardPressed_ = true; break;
-    case Qt::Key_A:       leftPressed_     = true; break;
-    case Qt::Key_D:       rightPressed_    = true; break;
-    case Qt::Key_Space:   upPressed_       = true; break;
-    case Qt::Key_Control: downPressed_     = true; break;
-    case Qt::Key_Shift:   shiftPressed_    = true; break;
-    default:
-        break;
+        case Qt::Key_W:       forwardPressed_  = true; break;
+        case Qt::Key_S:       backwardPressed_ = true; break;
+        case Qt::Key_A:       leftPressed_     = true; break;
+        case Qt::Key_D:       rightPressed_    = true; break;
+        case Qt::Key_Space:   upPressed_       = true; break;
+        case Qt::Key_Control: downPressed_     = true; break;
+        case Qt::Key_Shift:   shiftPressed_    = true; break;
+        default:
+            break;
     }
 }
 
 void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*camera*/)
 {
     switch (event->key()) {
-    case Qt::Key_W:       forwardPressed_  = false; break;
-    case Qt::Key_S:       backwardPressed_ = false; break;
-    case Qt::Key_A:       leftPressed_     = false; break;
-    case Qt::Key_D:       rightPressed_    = false; break;
-    case Qt::Key_Space:   upPressed_       = false; break;
-    case Qt::Key_Control: downPressed_     = false; break;
-    case Qt::Key_Shift:   shiftPressed_    = false; break;
-    default:
-        break;
+        case Qt::Key_W:       forwardPressed_  = false; break;
+        case Qt::Key_S:       backwardPressed_ = false; break;
+        case Qt::Key_A:       leftPressed_     = false; break;
+        case Qt::Key_D:       rightPressed_    = false; break;
+        case Qt::Key_Space:   upPressed_       = false; break;
+        case Qt::Key_Control: downPressed_     = false; break;
+        case Qt::Key_Shift:   shiftPressed_    = false; break;
+        case Qt::Key_Left:    turnLeftPressed_  = false; break;
+        case Qt::Key_Right:   turnRightPressed_ = false; break;
+        case Qt::Key_Up:      turnUpPressed_    = false; break;
+        case Qt::Key_Down:    turnDownPressed_  = false; break;
+        default:
+            break;
     }
 }
 
 void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
 {
-    if (!freeLookMode_ && !mouseButtonPressed_)
+    if (!isWindows || !freeLookMode_ && !mouseButtonPressed_)
         return;
 
     const QPoint  globalPos = event->globalPosition().toPoint();
 
-    if (isWindows) {                            // Windows
-        int dx = globalPos.x() - centerScreenPos_.x();
-        int dy = globalPos.y() - centerScreenPos_.y();
-        if (dx == 0 && dy == 0)
-            return;
+    int dx = globalPos.x() - centerScreenPos_.x();
+    int dy = globalPos.y() - centerScreenPos_.y();
+    if (dx == 0 && dy == 0)
+        return;
 
-        camera.setYaw  (camera.yaw()   - dx * kMouseSensitivity);
-        camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
+    camera.setYaw  (camera.yaw()   - dx * kMouseSensitivity);
+    camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
 
-        QCursor::setPos(centerScreenPos_);
-    } else {                                    // Linux or MacOS
-        static QPoint lastPos = globalPos;
-        int dx = globalPos.x() - lastPos.x();
-        int dy = globalPos.y() - lastPos.y();
-        lastPos = globalPos;
-
-        if (dx == 0 && dy == 0)
-            return;
-
-        camera.setYaw  (camera.yaw()   - dx * kMouseSensitivity);
-        camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
-    }
+    QCursor::setPos(centerScreenPos_);
 }
 
 void SceneInputHandler::mousePressEvent(QMouseEvent* event)
@@ -153,9 +157,10 @@ void SceneInputHandler::updateCamera(CameraController &camera)
     // If no movement keys pressed, skip
     if (!forwardPressed_ && !backwardPressed_ &&
         !leftPressed_ && !rightPressed_ &&
-        !upPressed_ && !downPressed_) {
+        !upPressed_ && !downPressed_ &&
+        !turnLeftPressed_ && !turnRightPressed_ &&
+        !turnUpPressed_ && !turnDownPressed_)
         return;
-    }
 
     // SHIFT => sprint
     float actualSpeed = (shiftPressed_) ? (moveSpeed_ * 2.0f) : moveSpeed_;
@@ -171,6 +176,11 @@ void SceneInputHandler::updateCamera(CameraController &camera)
     // Up/down
     if (upPressed_)       camera.moveUp(actualSpeed);
     if (downPressed_)     camera.moveUp(-actualSpeed);
+
+    if (turnLeftPressed_)  camera.setYaw  (camera.yaw()   + rotationSpeed_);
+    if (turnRightPressed_) camera.setYaw  (camera.yaw()   - rotationSpeed_);
+    if (turnUpPressed_)    camera.setPitch(camera.pitch() + rotationSpeed_);
+    if (turnDownPressed_)  camera.setPitch(camera.pitch() - rotationSpeed_);
 
     emit cameraMoved();
 }

@@ -127,6 +127,12 @@ private:
     bool downPressed_;
     bool shiftPressed_;
 
+    bool turnLeftPressed_;
+    bool turnRightPressed_;
+    bool turnUpPressed_;
+    bool turnDownPressed_;
+
+    float rotationSpeed_;
     float moveSpeed_;         ///< Movement speed for WASD
     float zoomSpeed_;         ///< Movement speed for zoom
 
