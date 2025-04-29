@@ -43,10 +43,11 @@ jobs:
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.7.1
+        version: 6.6.3
         host:   ${{ matrix.host }} 
         target: desktop  
         arch:   ${{ matrix.arch }} 
+        modules: "qtbase qttools"
         cache:  true
 
     # (Linux only) ensure we have essential build tools & ninja
