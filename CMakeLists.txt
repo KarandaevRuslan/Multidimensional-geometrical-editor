@@ -64,6 +64,13 @@ if (WIN32)
   set(APP_ICON_RC "${CMAKE_SOURCE_DIR}/resources.rc")
 endif()
 
+if(UNIX AND NOT APPLE)
+  find_package(ICU REQUIRED COMPONENTS i18n uc data)
+  list(APPEND COMMON_LINK_LIBS ICU::i18n ICU::uc ICU::data)
+else()
+  set(COMMON_LINK_LIBS "")
+endif()
+
 # macOS: tell CMake which .icns to bundle
 set_source_files_properties(
   "${CMAKE_SOURCE_DIR}/images/app_icon.icns"
@@ -108,6 +115,7 @@ target_link_libraries(NDEditor PRIVATE
     Qt${QT_VERSION_MAJOR}::OpenGL
     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
     Qt${QT_VERSION_MAJOR}::UiTools
+    ${COMMON_LINK_LIBS}
 )
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
@@ -169,6 +177,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug"
   target_link_libraries(Test PRIVATE
     GTest::gtest_main
     Qt${QT_VERSION_MAJOR}::Widgets
+    ${COMMON_LINK_LIBS}
   )
 
   include(GoogleTest)
