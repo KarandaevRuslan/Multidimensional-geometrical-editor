@@ -16,7 +16,7 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <QShortcut>
-#include <Qmenu>
+#include <QMenu>
 
 /* ---------- helpers ---------- */
 static QString css(const QColor& c){ return QString("background:%1").arg(c.name()); }
