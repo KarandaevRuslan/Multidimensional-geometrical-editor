@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QUndoStack>
 #include <QTabWidget>
+#include <QLabel>
 #include "../forms/ui_mainWindow.h"
 #include "../view/sceneRenderer.h"
 #include "dataModels/sceneObjectModel.h"
@@ -36,15 +37,23 @@ public:
     // Expose the QTabWidget so that PresenterMain can add new tabs.
     QTabWidget* getTabWidget() const { return tabWidget_; }
 
+    void updateStatusBar();
+
 private slots:
     void addNewSceneTab();
+    void refreshEditMenu(int tabIndex);
+    void showAboutDialog();
 
 private:
     Ui::MainWindow* ui_;
     QTabWidget* tabWidget_;
+    QLabel* hintLabel_;
+    QLabel* coordsLabel_;
 
     // The main presenter is not owned by MainWindow.
     PresenterMain* presenterMain_;
+protected:
+    void closeEvent(QCloseEvent *event) override;
 };
 
 #endif // MAIN_WINDOW_H

@@ -39,7 +39,6 @@ public:
 private slots:
     void chooseColor();
     void projectionChanged(int idx);
-    void kindChanged   (int idx);
 
 protected:
     void accept() override;
@@ -54,7 +53,7 @@ private:
     QDoubleSpinBox *perspDistSpin_;
     QLabel      *distanceLbl_;
 
-    QColor chosenColor_{Qt::white};
+    QColor chosenColor_{SceneColorificator::defaultColor};
 
     /* helpers */
     void buildUi();

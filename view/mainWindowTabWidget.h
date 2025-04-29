@@ -30,6 +30,10 @@ public:
     // Setter for the sub-presenter.
     void setPresenterMainTab(const std::shared_ptr<PresenterMainTab>& presenter);
 
+    QList<QAction *> editActions() const;
+    int sceneObjectCount() const;
+    CameraController *cameraController() const;
+    SceneInputHandler *inputHandler() const;
 private slots:
     void copySelected();
     void cutSelected();
@@ -37,7 +41,8 @@ private slots:
     void deleteSelected();
     void onListContextMenu(const QPoint &pos);
     void onCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
-
+    void exportSelectedObject();
+    void importObject();
 private:
     SceneRendererWidget* sceneRenderer_;
     QListView* listView_;
@@ -57,6 +62,7 @@ private:
     QMap<QString, QAction*> actions_;
 
     void selectLastObject();
+    void markDirty();
 };
 
 #endif // MAIN_WINDOW_TAB_WIDGET_H

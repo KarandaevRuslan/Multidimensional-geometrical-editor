@@ -8,6 +8,12 @@
 #include <QScreen>
 #include <QCommandLineParser>
 #include <QCommandLineOption>
+#include <QFile>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QJsonDocument>
+#include <QJsonDocument>
+#include "tools/sceneSerialization.h"
 
 static void setupScene(std::shared_ptr<Scene> scene,
                        std::shared_ptr<SceneColorificator> sceneColorificator);
@@ -40,6 +46,13 @@ PresenterMain::~PresenterMain(){
     qDebug() << "Presenter main died";
 }
 
+bool PresenterMain::hasDirtyTabs() const {
+    for (auto& p : tabPresenters_) {
+        if (p->isDirty()) return true;
+    }
+    return false;
+}
+
 void PresenterMain::createNewTab() {
     // Create a new MainWindowTabWidget.
     auto tabWidget = new MainWindowTabWidget();
@@ -48,8 +61,6 @@ void PresenterMain::createNewTab() {
     std::shared_ptr<Scene> scene = std::make_shared<Scene>();
     std::shared_ptr<SceneColorificator> sceneColorificator = std::make_shared<SceneColorificator>();
     ::setupScene(scene, sceneColorificator);
-    tabWidget->setScene(scene);
-    tabWidget->setSceneColorificator(sceneColorificator);
 
     // Pass the shared delegate.
     tabWidget->setDelegate(sharedDelegate_);
@@ -57,18 +68,36 @@ void PresenterMain::createNewTab() {
     // Create the sub-presenter for this tab.
     auto tabPresenter = std::make_shared<PresenterMainTab>(tabWidget, scene, sceneColorificator, this);
     tabWidget->setPresenterMainTab(tabPresenter);
+    tabWidget->setScene(scene);
+    tabWidget->setSceneColorificator(sceneColorificator);
 
     // Store the sub-presenter.
     tabPresenters_.push_back(tabPresenter);
 
+    QString tabLabel = QString(QObject::tr("Untitled"));
     // Add the tab widget to the main window’s tab container.
-    QString tabLabel = QString(QObject::tr("Untitled") + " - %1").arg(mainWindow_->getTabWidget()->count() + 1);
     mainWindow_->getTabWidget()->addTab(tabWidget, tabLabel);
+    mainWindow_->getTabWidget()->setCurrentWidget(tabWidget);
 }
 
 void PresenterMain::removeTab(int index) {
     QTabWidget* tabs = mainWindow_->getTabWidget();
     QWidget* widgetToRemove = tabs->widget(index);
+
+    if (auto p = presenterFor(widgetToRemove); p && p->isDirty()) {
+        QString name = tabs->tabText(index);
+        auto btn = QMessageBox::warning(
+            mainWindow_,
+            QObject::tr("Unsaved Changes"),
+            QObject::tr("The tab \"%1\" has unsaved changes.\n"
+                "Do you want to save your changes before closing?").arg(name),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        if (btn == QMessageBox::Save && !p->save(false, mainWindow_))
+            return;
+        else if (btn == QMessageBox::Cancel) {
+            return;
+        }
+   }
 
     // First: Remove the PresenterMainTab that owns this widget
     tabPresenters_.erase(
@@ -86,6 +115,73 @@ void PresenterMain::removeTab(int index) {
     delete widgetToRemove;
 }
 
+// --------------------- PresenterMain helpers ---------------------------
+void PresenterMain::saveCurrentTab(bool saveAs)
+{
+    QWidget* current = mainWindow_->getTabWidget()->currentWidget();
+    if (auto p = presenterFor(current))
+        p->save(saveAs, mainWindow_);
+}
+
+void PresenterMain::openSceneInNewTab()
+{
+    QString fn = QFileDialog::getOpenFileName(mainWindow_, QObject::tr("Open scene"), QString(),
+                                              QObject::tr("JSON files (*.json)"));
+    if (fn.isEmpty()) return;
+
+    std::shared_ptr<Scene>             scene   = std::make_shared<Scene>();
+    std::shared_ptr<SceneColorificator> colors = std::make_shared<SceneColorificator>();
+
+    // attempt to load file ------------------------------------------------
+    if (!loadFromFile(fn, scene, colors)) {
+        return;
+    }
+    auto tabWidget = new MainWindowTabWidget();
+    auto tabPresenter = std::make_shared<PresenterMainTab>(tabWidget, scene, colors, this);
+    tabWidget->setPresenterMainTab(tabPresenter);
+    tabPresenter->markSaved(fn);
+
+    // Delegate & UI wiring ----------------------------------------------
+    tabWidget->setScene(scene);
+    tabWidget->setSceneColorificator(colors);
+    tabWidget->setDelegate(sharedDelegate_);
+
+    tabPresenters_.push_back(tabPresenter);
+    QString base = QFileInfo(fn).completeBaseName();
+    mainWindow_->getTabWidget()->addTab(tabWidget, base);
+    mainWindow_->getTabWidget()->setCurrentWidget(tabWidget);
+}
+
+bool PresenterMain::loadFromFile(
+    const QString& fn,
+    std::shared_ptr<Scene> scene,
+    std::shared_ptr<SceneColorificator> sceneColorificator)
+{
+    QFile f(fn);
+    if (!f.open(QIODevice::ReadOnly)) {
+        QMessageBox::critical(mainWindow_, QObject::tr("Open scene"),
+                              QObject::tr("Cannot open %1").arg(fn));
+        return false;
+    }
+
+    QJsonParseError err;
+    QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+    if (err.error != QJsonParseError::NoError || !doc.isObject()) {
+        QMessageBox::critical(mainWindow_, QObject::tr("Open scene"),
+                              QObject::tr("%1 is not a valid scene").arg(fn));
+        return false;
+    }
+    f.close();
+
+    SceneSerializer::fromJson(doc, *scene, *sceneColorificator);
+    return true;
+}
+
+std::shared_ptr<PresenterMainTab> PresenterMain::presenterFor(QWidget* w) const {
+    auto it = std::find_if(tabPresenters_.begin(), tabPresenters_.end(),
+                           [w](auto& p){ return p->getTabWidget() == w; });
+    return it == tabPresenters_.end() ? nullptr : *it;
+}
 
 // --- Implementation of PresenterMainTab ---
 
@@ -115,6 +211,68 @@ PresenterMain* PresenterMainTab::getParentPresenter() const {
 QWidget* PresenterMainTab::getTabWidget() const {
     return tabWidget_;
 }
+
+bool PresenterMainTab::isDirty() const
+{
+    return isDirty_;
+}
+
+void PresenterMainTab::updateLabel()
+{
+    int idx = parent_->getMainWindow()
+    ->getTabWidget()->indexOf(tabWidget_);
+    if (idx != -1) {
+        QString t = baseName_;
+        if (isDirty_) t += " *";
+        parent_->getMainWindow()->getTabWidget()->setTabText(idx, t);
+    }
+}
+
+void PresenterMainTab::markDirty()
+{
+    if (!isDirty_) {
+        isDirty_ = true;
+        updateLabel();
+    }
+}
+void PresenterMainTab::markSaved(QString filePath)
+{
+    if (!filePath.isEmpty()) {
+        baseName_ = QFileInfo(filePath).completeBaseName();
+        filePath_ = filePath;
+    }
+    else {
+        qWarning() << "We can not mark \"saved\" empty file.";
+        return;
+    }
+    isDirty_ = false;
+    updateLabel();
+}
+
+// ----------------- PresenterMainTab save / load ------------------------
+bool PresenterMainTab::save(bool saveAs, QWidget* parentWindow)
+{
+    QString fn = filePath_;
+    if (saveAs || filePath_.isEmpty()) {
+        fn = QFileDialog::getSaveFileName(
+            parentWindow, QObject::tr("Save scene"),
+            filePath_.isEmpty()? baseName_ + ".json" : filePath_,
+            QObject::tr("JSON files (*.json)"));
+        if (fn.isEmpty()) return false;
+    }
+
+    QFile f(fn);
+    if (!f.open(QIODevice::WriteOnly)) {
+        QMessageBox::critical(parentWindow, QObject::tr("Save scene"),
+                              QObject::tr("Cannot write to %1").arg(fn));
+        return false;
+    }
+    QJsonDocument doc = SceneSerializer::toJson(*scene_, *sceneColorificator_);
+    f.write(doc.toJson(QJsonDocument::Indented)); f.close();
+    markSaved(fn);
+    return true;
+}
+
 
 static void setupScene(std::shared_ptr<Scene> scene,
                        std::shared_ptr<SceneColorificator> sceneColorificator) {

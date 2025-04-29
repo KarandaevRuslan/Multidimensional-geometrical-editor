@@ -92,6 +92,9 @@ public:
     /// Retrieves a list of all scene objects.
     std::vector<std::weak_ptr<SceneObject>> getAllObjects() const;
 
+    /// Returns the number of objects currently in the scene.
+    std::size_t objectCount() const;
+
     /// Performs full conversion on the given object.
     static ConvertedData convertObject(const SceneObject& obj, int sceneDimension);
 

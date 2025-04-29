@@ -10,6 +10,10 @@
 #include <QMenu>
 #include <QShortcut>
 #include <QContextMenuEvent>
+#include <QMessageBox>
+#include "../tools/SceneSerialization.h"
+#include <QFileDialog>
+#include "../model/opengl/input/sceneInputHandler.h"
 
 MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     : QWidget(parent)
@@ -55,6 +59,7 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
                     model_, idx.row(), upd, col,
                     [this, geomChanged]{
                         if(geomChanged) sceneRenderer_->updateAll();
+                        markDirty();
                     },
                     [this]{
                         editor_->rebuildUiFromCurrent();
@@ -111,11 +116,21 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
 
                    undoStack_->push(new AddSceneObjectCommand(
                        model_, obj, col,
-                       [this]{ sceneRenderer_->updateAll(); }));
+                       [this]{
+                           sceneRenderer_->updateAll();
+                           markDirty();
+                       }));
 
                    selectLastObject();
                },
-               this);
+               listView_);
+    makeAction("exportObj", tr("Export Object"),
+               QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S),
+               &MainWindowTabWidget::exportSelectedObject, listView_);
+
+    makeAction("importObj", tr("Import Object"),
+               QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_L),
+               &MainWindowTabWidget::importObject, listView_);
 
 
     // Model is created but will be assigned scene/colorificator later:
@@ -140,6 +155,9 @@ void MainWindowTabWidget::onListContextMenu(const QPoint &pos)
     contextMenu.addAction(actions_["copy"]);
     contextMenu.addAction(actions_["paste"]);
     contextMenu.addAction(actions_["delete"]);
+    contextMenu.addSeparator();
+    contextMenu.addAction(actions_["exportObj"]);
+    contextMenu.addAction(actions_["importObj"]);
 
     contextMenu.exec(listView_->viewport()->mapToGlobal(pos));
 }
@@ -152,6 +170,19 @@ void MainWindowTabWidget::setScene(std::shared_ptr<Scene> scene) {
     if (model_) {
         model_->setScene(scene_);
     }
+
+    auto input = sceneRenderer_->inputHandler();
+    if (input) {
+        connect(input.get(), &SceneInputHandler::freeLookModeToggled,
+                presenterMainTab_->getParentPresenter()->getMainWindow(),
+                &MainWindow::updateStatusBar,
+                Qt::QueuedConnection);
+    }
+
+    connect(input.get(), &SceneInputHandler::cameraMoved,
+            presenterMainTab_->getParentPresenter()->getMainWindow(),
+            &MainWindow::updateStatusBar,
+            Qt::QueuedConnection);
 }
 
 void MainWindowTabWidget::setSceneColorificator(std::shared_ptr<SceneColorificator> colorificator) {
@@ -238,7 +269,10 @@ void MainWindowTabWidget::pasteObject()
                 model_,
                 newObj,
                 *(parent->copyColor_),
-                [this]() { sceneRenderer_->updateAll(); }
+                [this]() {
+                    sceneRenderer_->updateAll();
+                    markDirty();
+                }
             );
             undoStack_->push(cmd);
 
@@ -256,7 +290,10 @@ void MainWindowTabWidget::deleteSelected()
     auto cmd = new RemoveSceneObjectCommand(
         model_,
         index.row(),
-        [this]() { sceneRenderer_->updateAll(); }
+        [this]() {
+            sceneRenderer_->updateAll();
+            markDirty();
+        }
         );
     undoStack_->push(cmd);
 }
@@ -283,4 +320,172 @@ void MainWindowTabWidget::selectLastObject()
         QModelIndex idx = model_->index(row, 0);
         listView_->setCurrentIndex(idx);
     }
+}
+
+// ---------- Export -------------------------------------------------
+void MainWindowTabWidget::exportSelectedObject()
+{
+    if (!model_) return;
+
+    try {
+        const QModelIndex idx = listView_->currentIndex();
+        if (!idx.isValid()) {
+            QMessageBox::information(this, tr("Export object"),
+                                     tr("Select an object first."));
+            return;
+        }
+        auto obj = model_->getObjectByRow(idx.row());
+        if (!obj) {
+            QMessageBox::critical(this, tr("Export object"),
+                                  tr("Internal error – cannot fetch object."));
+            return;
+        }
+
+        const QString fileName =
+            QFileDialog::getSaveFileName(this, tr("Save object as"),
+                                         obj->name + u".json"_qs,
+                                         tr("JSON files (*.json)"));
+        if (fileName.isEmpty()) return;
+
+        QFile f(fileName);
+        if (!f.open(QIODevice::WriteOnly)) {
+            QMessageBox::critical(
+                this,
+                tr("Export object"),
+                tr("Cannot open “%1” for writing:\n%2")
+                    .arg(fileName)
+                    .arg(f.errorString())
+                );
+            return;
+        }
+
+        QColor col = sceneColorificator_->getColorForObject(obj->uid);
+        QJsonDocument doc(SceneSerializer::objectToJson(*obj, col));
+        f.write(doc.toJson(QJsonDocument::Indented));
+        f.close();
+    }
+    catch (const std::exception &ex) {
+        QMessageBox::critical(
+            this,
+            tr("Export object"),
+            tr("An error occurred during export:\n%1").arg(ex.what())
+            );
+    }
+    catch (...) {
+        QMessageBox::critical(
+            this,
+            tr("Export object"),
+            tr("An unknown error occurred during export.")
+            );
+    }
+}
+
+
+// ---------- Import -------------------------------------------------
+void MainWindowTabWidget::importObject()
+{
+    if (!model_) return;
+
+    try {
+        const QString fileName =
+            QFileDialog::getOpenFileName(this, tr("Load object"),
+                                         QString(), tr("JSON files (*.json)"));
+        if (fileName.isEmpty()) return;
+
+        QFile f(fileName);
+        if (!f.open(QIODevice::ReadOnly)) {
+            QMessageBox::critical(
+                this,
+                tr("Import object"),
+                tr("Cannot open “%1”:\n%2")
+                    .arg(fileName)
+                    .arg(f.errorString())
+                );
+            return;
+        }
+
+        QJsonParseError perr;
+        QJsonDocument   doc = QJsonDocument::fromJson(f.readAll(), &perr);
+        f.close();
+
+        if (perr.error != QJsonParseError::NoError || !doc.isObject()) {
+            QMessageBox::critical(
+                this,
+                tr("Import object"),
+                tr("Invalid JSON:\n%1 at offset %2")
+                    .arg(perr.errorString())
+                    .arg(perr.offset)
+                );
+            return;
+        }
+
+        QColor col;
+        auto   obj = SceneSerializer::objectFromJson(doc.object(), &col);
+        if (!obj) {
+            QMessageBox::critical(this, tr("Import object"),
+                                  tr("Failed to interpret object data."));
+            return;
+        }
+
+        obj->uid = QUuid::createUuid();
+
+        undoStack_->push(new AddSceneObjectCommand(
+            model_, obj->clone(), col, [this]{
+                sceneRenderer_->updateAll();
+                markDirty();
+            }));
+        selectLastObject();
+    }
+    catch (const std::exception &ex) {
+        QMessageBox::critical(
+            this,
+            tr("Import object"),
+            tr("An error occurred during import:\n%1").arg(ex.what())
+            );
+    }
+    catch (...) {
+        QMessageBox::critical(
+            this,
+            tr("Import object"),
+            tr("An unknown error occurred during import.")
+            );
+    }
+}
+
+void MainWindowTabWidget::markDirty(){
+    presenterMainTab_->markDirty();
+
+    PresenterMain* pm = presenterMainTab_->getParentPresenter();
+    if (pm && pm->getMainWindow()) {
+        pm->getMainWindow()->updateStatusBar();
+    }
+}
+
+QList<QAction*> MainWindowTabWidget::editActions() const
+{
+    return {
+        actions_.value("undo"),
+        actions_.value("redo"),
+        nullptr,                     // -------------
+        actions_.value("cut"),
+        actions_.value("copy"),
+        actions_.value("paste"),
+        actions_.value("delete"),
+        nullptr,                     // -------------
+        actions_.value("add"),
+        actions_.value("exportObj"),
+        actions_.value("importObj")
+    };
+}
+
+int MainWindowTabWidget::sceneObjectCount() const {
+    return static_cast<int>(scene_->objectCount());
+}
+
+CameraController* MainWindowTabWidget::cameraController() const {
+    return sceneRenderer_->cameraController().get();
+}
+
+SceneInputHandler* MainWindowTabWidget::inputHandler() const {
+    return sceneRenderer_->inputHandler().get();
 }

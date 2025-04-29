@@ -145,6 +145,8 @@ void SceneInputHandler::wheelEvent(QWheelEvent* event, CameraController& camera)
 
     float steps = static_cast<float>(delta) / 120.0f;
     camera.zoom(zoomSpeed_ * steps);
+
+    emit cameraMoved();
 }
 
 void SceneInputHandler::updateCamera(CameraController &camera)
@@ -170,6 +172,8 @@ void SceneInputHandler::updateCamera(CameraController &camera)
     // Up/down
     if (upPressed_)       camera.moveUp(actualSpeed);
     if (downPressed_)     camera.moveUp(-actualSpeed);
+
+    emit cameraMoved();
 }
 
 void SceneInputHandler::setWidgetCenter(const QPoint &globalCenterPos)

@@ -47,3 +47,10 @@ void SceneRendererWidget::updateAll()
         glWindow_->updateAll();
     }
 }
+
+std::shared_ptr<SceneInputHandler> SceneRendererWidget::inputHandler() const {
+    return glWindow_->inputHandler();
+}
+std::shared_ptr<CameraController> SceneRendererWidget::cameraController() const {
+    return glWindow_->cameraController();
+}

@@ -97,6 +97,10 @@ std::vector<std::weak_ptr<SceneObject>> Scene::getAllObjects() const
     return out;
 }
 
+std::size_t Scene::objectCount() const {
+    return objects_.size();
+}
+
 ConvertedData Scene::convertObject(const SceneObject& obj, int sceneDimension)
 {
     ConvertedData res;

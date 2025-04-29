@@ -111,6 +111,8 @@ signals:
      */
     void freeLookModeToggled(bool enabled);
 
+    void cameraMoved();
+
 private:
     bool freeLookMode_;       ///< Indicates whether free-look mode is active
     bool firstMouseMove_;     ///< Tracks if the first mouse event should be ignored

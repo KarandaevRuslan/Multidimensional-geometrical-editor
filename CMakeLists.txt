@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(MultidimensionalGeometricEditor VERSION 0.1 LANGUAGES CXX)
+project(NDEditor VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
@@ -11,8 +11,8 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools UiTools 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 
 set(TS_FILES
-    MultidimensionalGeometricEditor_en_US.ts
-    MultidimensionalGeometricEditor_ru_RU.ts
+    NDEditor_en_US.ts
+    NDEditor_ru_RU.ts
 )
 
 set(RESOURCES
@@ -50,35 +50,60 @@ set(PROJECT_SOURCES
     view/sceneObjectEditorWidget.h view/sceneObjectEditorWidget.cpp
     view/NDShapeEditorDialog.h view/NDShapeEditorDialog.cpp
     view/axesGroupBox.h view/axesGroupBox.cpp
+    view/addSceneObjectDialog.h view/addSceneObjectDialog.cpp
+    tools/sceneSerialization.h
     ${RESOURCES}
     ${UI_FILES}
 )
 
-# qt_add_translations(MultidimensionalGeometricEditor
+# qt_add_translations(NDEditor
 #     TS_FILES ${TS_FILES}
 # )
 
+if (WIN32)
+  set(APP_ICON_RC "${CMAKE_SOURCE_DIR}/resources.rc")
+endif()
+
+# macOS: tell CMake which .icns to bundle
+set_source_files_properties(
+  "${CMAKE_SOURCE_DIR}/images/app_icon.icns"
+  PROPERTIES
+    MACOSX_PACKAGE_LOCATION "Resources"
+)
+set(MACOSX_ICON_FILE "images/app_icon.icns")
+
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(MultidimensionalGeometricEditor
+    qt_add_executable(NDEditor
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
-        view/addSceneObjectDialog.h view/addSceneObjectDialog.cpp
+        ${APP_ICON_RC}
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+
+    set_target_properties(NDEditor PROPERTIES
+      MACOSX_BUNDLE_ICON_FILE ${MACOSX_ICON_FILE}
+    )
 else()
     if(ANDROID)
-        add_library(MultidimensionalGeometricEditor SHARED
+        add_library(NDEditor SHARED
             ${PROJECT_SOURCES}
+            ${APP_ICON_RC}
         )
     else()
-        add_executable(MultidimensionalGeometricEditor
+        add_executable(NDEditor
             ${PROJECT_SOURCES}
+            ${APP_ICON_RC}
+            MACOSX_BUNDLE
+            WIN32
         )
     endif()
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    set_target_properties(NDEditor PROPERTIES
+      MACOSX_BUNDLE_ICON_FILE ${MACOSX_ICON_FILE}
+    )
 endif()
 
-target_link_libraries(MultidimensionalGeometricEditor PRIVATE
+target_link_libraries(NDEditor PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::OpenGL
     Qt${QT_VERSION_MAJOR}::OpenGLWidgets
@@ -86,10 +111,10 @@ target_link_libraries(MultidimensionalGeometricEditor PRIVATE
 )
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.MultidimensionalGeometricEditor)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.NDEditor)
 endif()
 
-set_target_properties(MultidimensionalGeometricEditor PROPERTIES
+set_target_properties(NDEditor PROPERTIES
     ${BUNDLE_ID_OPTION}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
@@ -98,51 +123,54 @@ set_target_properties(MultidimensionalGeometricEditor PROPERTIES
 )
 
 include(GNUInstallDirs)
-install(TARGETS MultidimensionalGeometricEditor
+install(TARGETS NDEditor
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(MultidimensionalGeometricEditor)
+    qt_finalize_executable(NDEditor)
 endif()
 
 ###############
 #    Tests    #
 ###############
+if (CMAKE_BUILD_TYPE STREQUAL "Debug"
+    OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo"
+    OR CMAKE_BUILD_TYPE STREQUAL "MinSizeRel")
+  include(FetchContent)
 
-include(FetchContent)
+  FetchContent_Declare(
+      gtest
+      GIT_REPOSITORY "https://github.com/google/googletest"
+      GIT_TAG        main
+  )
 
-FetchContent_Declare(
-    gtest
-    GIT_REPOSITORY "https://github.com/google/googletest"
-    GIT_TAG        main
-)
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(gtest)
 
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(gtest)
+  set(TESTS
+      tests/NDShape.cc
+  )
 
-set(TESTS
-    tests/NDShape.cc
-)
+  set(TESTING_FILES
+      model/NDShape.h
+      model/NDShape.cpp
+  )
 
-set(TESTING_FILES
-    model/NDShape.h
-    model/NDShape.cpp
-)
+  enable_testing()
 
-enable_testing()
+  add_executable(
+    Test
+    ${TESTS}
+    ${TESTING_FILES}
+  )
+  target_link_libraries(Test PRIVATE
+    GTest::gtest_main
+    Qt${QT_VERSION_MAJOR}::Widgets
+  )
 
-add_executable(
-  Test
-  ${TESTS}
-  ${TESTING_FILES}
-)
-target_link_libraries(Test PRIVATE
-  GTest::gtest_main
-  Qt${QT_VERSION_MAJOR}::Widgets
-)
-
-include(GoogleTest)
-gtest_discover_tests(Test)
+  include(GoogleTest)
+  gtest_discover_tests(Test)
+endif()

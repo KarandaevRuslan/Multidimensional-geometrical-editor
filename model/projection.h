@@ -69,7 +69,7 @@ public:
 
     std::shared_ptr<Projection> clone() const override;
 
-    double getDistance(){ return d_; }
+    const double getDistance(){ return d_; }
 
 
 private:

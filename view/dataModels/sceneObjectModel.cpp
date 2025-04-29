@@ -114,8 +114,8 @@ void SceneObjectModel::refresh()
         if (auto sp = w.lock()) object_uids_.push_back(sp->uid);
     endResetModel();
 
-    if (auto lv = qobject_cast<QListView*>(parent()); lv && rowCount() > 0)
-        lv->setCurrentIndex(index(0,0));
+    // if (auto lv = qobject_cast<QListView*>(parent()); lv && rowCount() > 0)
+    //     lv->setCurrentIndex(index(0,0));
 }
 
 void SceneObjectModel::addSceneObject(const SceneObject& obj, const QColor& color)

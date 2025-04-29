@@ -30,6 +30,8 @@ public:
      */
     void updateAll();
 
+    std::shared_ptr<SceneInputHandler> inputHandler() const;
+    std::shared_ptr<CameraController> cameraController() const;
 private:
     SceneRenderer* glWindow_ = nullptr;  ///< The actual QOpenGLWindow
     QWidget*       container_ = nullptr; ///< The QWidget container around glWindow_

@@ -4,5 +4,6 @@
 		<file>shaders/shadow_fragment.glsl</file>
 		<file>shaders/vertex_shader.glsl</file>
 		<file>shaders/fragment_shader.glsl</file>
+		<file>images/app_icon.png</file>
     </qresource>
 </RCC>

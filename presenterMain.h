@@ -38,12 +38,22 @@ public:
 
     void removeTab(int index);
 
+    void openSceneInNewTab();
+    void saveCurrentTab(bool saveAs);
+
+    bool hasDirtyTabs() const;
+
+    MainWindow* getMainWindow() const { return mainWindow_; }
+    std::shared_ptr<class PresenterMainTab> presenterFor(QWidget *w) const;
 private:
     /// Reference to the main UI window.
     MainWindow* mainWindow_;
 
     /// Container for sub-presenters (one for each tab).
     std::vector<std::shared_ptr<class PresenterMainTab>> tabPresenters_;
+    bool loadFromFile(const QString& fn,
+                      std::shared_ptr<Scene> scene,
+                      std::shared_ptr<SceneColorificator> sceneColorificator);
 };
 
 
@@ -67,11 +77,28 @@ public:
 
     QWidget* getTabWidget() const;
 
+    bool isDirty() const;
+
+    /* ---------- persistence ---------- */
+    bool save(bool saveAs, QWidget* parentWindow);
+
+    /* ---------- bookkeeping ---------- */
+    void markDirty();
+    void markSaved(QString filePath);
+
 private:
+    void updateLabel();
+
     class MainWindowTabWidget* tabWidget_;
     std::shared_ptr<Scene> scene_;
     std::shared_ptr<SceneColorificator> sceneColorificator_;
     PresenterMain* parent_;
+
+    QString filePath_;
+    bool isDirty_ = false;
+    QString baseName_ = QObject::tr("Untitled");
+
+    bool load(QWidget* parentWindow);
 };
 
 #endif // PRESENTER_MAIN_H

@@ -14,8 +14,9 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
+    app.setWindowIcon(QIcon(":/images/app_icon.png"));
 
-    QCoreApplication::setApplicationName("Multidimensional Geometrical Editor");
+    QCoreApplication::setApplicationName("NDEditor");
     QCoreApplication::setOrganizationName("Ruslan Karandaev");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
     QCommandLineParser parser;

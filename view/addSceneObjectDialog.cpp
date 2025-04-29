@@ -38,8 +38,6 @@ void AddSceneObjectDialog::buildUi()
     kindLay->setContentsMargins(0,0,0,0);
     kindCombo_ = new QComboBox(kindRow);
     kindCombo_->addItems({tr("Empty"), tr("N-Hypercube"), tr("N-Simplex")});
-    connect(kindCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &AddSceneObjectDialog::kindChanged);
     dimSpin_ = new QSpinBox(kindRow);
     dimSpin_->setRange(3, 20);
     dimSpin_->setValue(4);
@@ -78,8 +76,6 @@ void AddSceneObjectDialog::buildUi()
     connect(bb, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(bb, &QDialogButtonBox::rejected, this, &QDialog::reject);
     mainLay->addWidget(bb);
-
-    kindChanged(kindCombo_->currentIndex());
 }
 
 /* ---------- slots ---------- */
@@ -96,12 +92,6 @@ void AddSceneObjectDialog::projectionChanged(int idx)
     bool persp = (idx == 1);
     distanceLbl_->setVisible(persp);
     perspDistSpin_->setVisible(persp);
-}
-
-void AddSceneObjectDialog::kindChanged(int idx)
-{
-    bool needsDim = (idx != 0);
-    dimSpin_->setEnabled(needsDim);
 }
 
 /* ---------- simple getters ---------- */
