@@ -88,8 +88,9 @@ void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
         return;
     }
 
-    int dx = event->globalX() - centerScreenPos_.x();
-    int dy = event->globalY() - centerScreenPos_.y();
+    QPoint globalPos = event->globalPosition().toPoint();
+    int dx = globalPos.x() - centerScreenPos_.x();
+    int dy = globalPos.y() - centerScreenPos_.y();
 
     if (dx == 0 && dy == 0) {
         // Possibly a warp back to center
