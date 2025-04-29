@@ -14,50 +14,51 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            host: linux 
-            arch: gcc_64  
+            host: linux
+            arch: gcc_64
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
-    
           - os: windows-latest
-            host: windows   
+            host: windows
             arch: win64_msvc2019_64
             cmake_extra: "-A x64"
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
-    
           - os: macos-latest
-            host: mac    
-            arch: clang_64 
+            host: mac
+            arch: clang_64
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
 
     steps:
-    # ---------- checkout ------------------------------------------------------
+    #--------------------------------------------------------------------
     - name: Checkout source
       uses: actions/checkout@v4
 
-    # ---------- Qt ------------------------------------------------------------
+    #--------------------------------------------------------------------
+    # Install Qt 6.6.3 + the two archives we actually need
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: 6.6.3
-        host:   ${{ matrix.host }} 
-        target: desktop  
-        arch:   ${{ matrix.arch }} 
-        modules: "qtbase qttools"
+        version: 6.6.3           # LTS; works everywhere
+        host:   ${{ matrix.host }}
+        target: desktop
+        arch:   ${{ matrix.arch }}
+        archives: "qtbase qttools"   # UiTools lives in qttools
         cache:  true
 
-    # (Linux only) ensure we have essential build tools & ninja
+    #--------------------------------------------------------------------
+    # Extra build tools (Linux only)
     - name: Install build requirements (Linux)
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y ninja-build
 
-    # ---------- CMake configure + TEST build ---------------------------------
+    #--------------------------------------------------------------------
+    # Configure + build the tests (Debug)
     - name: Configure (Debug + tests)
       run: >
         cmake -S . -B ${{ matrix.build_dir }}
@@ -71,7 +72,8 @@ jobs:
     - name: Run Google Tests
       run: ctest --test-dir ${{ matrix.build_dir }} --output-on-failure
 
-    # ---------- Release build (only if tests passed) --------------------------
+    #--------------------------------------------------------------------
+    # Release build (only if tests pass)
     - name: Re-configure (Release)
       run: >
         cmake -S . -B ${{ matrix.build_dir }}/rel
@@ -82,7 +84,8 @@ jobs:
     - name: Build NDEditor (Release)
       run: cmake --build ${{ matrix.build_dir }}/rel --target NDEditor
 
-    # ---------- Package & upload ---------------------------------------------
+    #--------------------------------------------------------------------
+    # Package & upload
     - name: Package artefact
       shell: bash
       run: |
