@@ -13,6 +13,8 @@
 #include <QDialogButtonBox>
 #include <QUuid>
 #include <QMessageBox>
+#include <numeric>
+#include <memory>
 
 /* ---------- ctor & UI ---------- */
 AddSceneObjectDialog::AddSceneObjectDialog(QWidget *parent)
@@ -37,7 +39,13 @@ void AddSceneObjectDialog::buildUi()
     auto *kindLay = new QHBoxLayout(kindRow);
     kindLay->setContentsMargins(0,0,0,0);
     kindCombo_ = new QComboBox(kindRow);
-    kindCombo_->addItems({tr("Empty"), tr("N-Hypercube"), tr("N-Simplex")});
+    kindCombo_->addItems({
+        tr("Empty"),
+        tr("N-Hypercube"),
+        tr("N-Simplex"),
+        tr("N-Cross polytope"),
+        tr("Permutohedron")
+    });
     dimSpin_ = new QSpinBox(kindRow);
     dimSpin_->setRange(3, 20);
     dimSpin_->setValue(4);
@@ -130,22 +138,210 @@ std::shared_ptr<NDShape> AddSceneObjectDialog::buildHypercube(int n) const
     return s;
 }
 
+/* ---------- regular simplex -------------- */
 std::shared_ptr<NDShape> AddSceneObjectDialog::buildSimplex(int n) const
 {
-    auto s = std::make_shared<NDShape>(n);
-    std::vector<std::size_t> verts;
+    if (n <= 0)
+        throw std::invalid_argument("dimension must be positive");
 
-    for (int i = 0; i <= n; ++i) {
-        std::vector<double> v(n, 0.0);
-        if (i < n) v[i] = 1.0;
-        else       std::fill(v.begin(), v.end(), -1.0);
-        verts.push_back(s->addVertex(v));
+    using Vec = std::vector<double>;
+
+    /* ========== 1. raw vertices in (n+1)-space, centred at the origin ======
+       Take the (n+1) standard basis vectors e₀ … e_n in ℝⁿ⁺¹
+       and subtract their centroid 𝟙/(n+1).  The result is a regular
+       simplex lying in the hyper-plane Σxᵢ = 0.                                  */
+    const int bigN = n + 1;
+    const double centroid = 1.0 / static_cast<double>(bigN);
+
+    std::vector<Vec> raw;           // n+1 raw vertices in ℝⁿ⁺¹
+    raw.reserve(bigN);
+
+    for (int i = 0; i < bigN; ++i)
+    {
+        Vec w(bigN, -centroid);     // start with −centroid
+        w[i] += 1.0;                // add basis vector eᵢ
+        raw.push_back(std::move(w));
     }
+
+    /* ========== 2. build Householder reflection that sends 𝟙  →  e_{n} ===== */
+    Vec ones(bigN, 1.0 / std::sqrt(static_cast<double>(bigN)));   // 𝟙/√(n+1)
+    Vec ez(bigN, 0.0);  ez[bigN - 1] = 1.0;                       // last axis
+
+    Vec u(bigN);
+    for (int i = 0; i < bigN; ++i) u[i] = ones[i] - ez[i];        // 𝟙̄ – e_{n}
+    double uNorm2 = 0.0;
+    for (double x : u) uNorm2 += x * x;
+
+    if (uNorm2 > 1e-12)
+    {
+        const double invNorm = 1.0 / std::sqrt(uNorm2);
+        for (double& x : u) x *= invNorm;                         // normalise u
+    }
+    /* (For n==1, u becomes zero and the reflection degenerates to identity) */
+
+    auto applyHouseholder = [&](const Vec& v) -> Vec
+    {
+        if (uNorm2 <= 1e-12) return v;                            // n == 1
+
+        double dot = 0.0;
+        for (int i = 0; i < bigN; ++i) dot += u[i] * v[i];        // u·v
+
+        Vec res(bigN);
+        for (int i = 0; i < bigN; ++i) res[i] = v[i] - 2.0 * dot * u[i];
+        return res;
+    };
+
+    /* ========== 3. add rotated vertices (first n coords) to NDShape ======= */
+    auto shape = std::make_shared<NDShape>(static_cast<std::size_t>(n));
+    std::vector<std::size_t> verts;  verts.reserve(bigN);
+
+    for (const Vec& w : raw)
+    {
+        Vec r = applyHouseholder(w);                  // now lies in x_{n}=0
+        r.pop_back();                                 // drop last coord → ℝⁿ
+
+        verts.push_back(shape->addVertex(r));         // store vertex
+    }
+
+    /* ========== 4. connect every pair of vertices (complete graph) ========= */
     for (std::size_t i = 0; i < verts.size(); ++i)
-        for (std::size_t j = i+1; j < verts.size(); ++j)
-            s->addEdge(verts[i], verts[j]);
-    return s;
+        for (std::size_t j = i + 1; j < verts.size(); ++j)
+            shape->addEdge(verts[i], verts[j]);
+
+    return shape;
 }
+
+/* ---------- cross-polytope ------------- */
+std::shared_ptr<NDShape> AddSceneObjectDialog::buildCrossPolytope(int n) const
+{
+    auto shp = std::make_shared<NDShape>(n);
+    std::vector<std::size_t> idx;
+
+    // vertices ±e_i
+    for (int i = 0; i < n; ++i) {
+        std::vector<double> v(n, 0.0);
+        v[i] =  1.0; idx.push_back(shp->addVertex(v));
+        v[i] = -1.0; idx.push_back(shp->addVertex(v));
+    }
+
+    // edges: vertices on different axes
+    for (std::size_t a = 0; a < idx.size(); ++a)
+        for (std::size_t b = a + 1; b < idx.size(); ++b)
+            if (a / 2 != b / 2)
+                shp->addEdge(idx[a], idx[b]);
+
+    return shp;
+}
+
+/* ---------- permutohedron -------------- */
+/* ---------- permutohedron -------------- */
+std::shared_ptr<NDShape> AddSceneObjectDialog::buildPermutohedron(int n) const
+{
+    if (n <= 0)
+        throw std::invalid_argument("dimension must be positive");
+
+    using Perm = std::vector<int>;
+
+    auto encode = [](const Perm& p) -> std::string
+    {
+        std::string out;
+        out.reserve(p.size() * 3);
+        for (std::size_t i = 0; i < p.size(); ++i)
+        {
+            out += std::to_string(p[i]);
+            if (i + 1 < p.size()) out.push_back(',');
+        }
+        return out;
+    };
+
+    /* ---------- 1.  enumerate permutations and store raw vertices --------- */
+    const double shift = 0.5 * static_cast<double>(n + 1);   // centre at origin
+
+    std::vector<Perm>               permutations;
+    std::vector<std::vector<double>> raw;                    // temporary store
+
+    Perm perm(n);
+    std::iota(perm.begin(), perm.end(), 1);                  // 1 2 … n
+    do
+    {
+        std::vector<double> v(n);
+        for (int i = 0; i < n; ++i)
+            v[i] = static_cast<double>(perm[i]) - shift;
+
+        permutations.push_back(perm);
+        raw.push_back(std::move(v));
+
+    } while (std::next_permutation(perm.begin(), perm.end()));
+
+    /* ---------- 2.  prepare Householder reflection H = I - 2 u uᵀ -------- */
+    // ones̄  = (1,1,…,1)/√n
+    const double invSqrtN = 1.0 / std::sqrt(static_cast<double>(n));
+
+    std::vector<double> u(n);
+    for (int i = 0; i < n; ++i)
+        u[i] = invSqrtN - (i == n - 1 ? 1.0 : 0.0);          // ones̄ - eₙ
+
+    // If u is the zero vector (only when n==1), skip the reflection
+    double uNorm2 = 0.0;
+    for (double x : u) uNorm2 += x * x;
+
+    if (uNorm2 > 1e-12)
+    {
+        const double invUNorm = 1.0 / std::sqrt(uNorm2);
+        for (double& x : u) x *= invUNorm;                   // normalize u
+    }
+    // else: keep u ≡ 0, so H = I (n==1 case)
+
+    auto applyHouseholder = [&](const std::vector<double>& v) -> std::vector<double>
+    {
+        if (uNorm2 <= 1e-12) return v;                       // no-op for n==1
+
+        double dot = 0.0;
+        for (int i = 0; i < n; ++i) dot += u[i] * v[i];      // u·v
+
+        std::vector<double> res(n);
+        for (int i = 0; i < n; ++i)
+            res[i] = v[i] - 2.0 * dot * u[i];                // v - 2(u·v)u
+
+        return res;
+    };
+
+    /* ---------- 3.  add rotated vertices to NDShape ----------------------- */
+    auto shape = std::make_shared<NDShape>(static_cast<std::size_t>(n));
+    std::unordered_map<std::string, std::size_t> vertexIdOf;   // perm → id
+    vertexIdOf.reserve(raw.size());
+
+    for (std::size_t k = 0; k < raw.size(); ++k)
+    {
+        const std::vector<double> coords = applyHouseholder(raw[k]);
+        const std::size_t id = shape->addVertex(coords);
+        vertexIdOf.emplace(encode(permutations[k]), id);
+    }
+
+    /* ---------- 4.  connect permutations differing by one adjacent swap --- */
+    for (const Perm& base : permutations)
+    {
+        const std::size_t idA = vertexIdOf[encode(base)];
+
+        for (int i = 0; i < n - 1; ++i)
+            for (int j = i + 1; j < n; ++j)
+            {
+                if (std::abs(base[i] - base[j]) != 1) continue;
+
+                Perm neigh = base;
+                std::swap(neigh[i], neigh[j]);
+
+                if (auto it = vertexIdOf.find(encode(neigh)); it != vertexIdOf.end())
+                {
+                    const std::size_t idB = it->second;
+                    if (idA < idB) shape->addEdge(idA, idB); // keep “add once” rule
+                }
+            }
+    }
+
+    return shape;
+}
+
 
 /* ---------- factory for complete SceneObject ---------- */
 SceneObject AddSceneObjectDialog::makeSceneObject(int visualId) const
@@ -157,9 +353,11 @@ SceneObject AddSceneObjectDialog::makeSceneObject(int visualId) const
     obj.shape     = nullptr;
 
     switch (kind()) {
-    case Kind::Hypercube: obj.shape = buildHypercube(dimension()); break;
-    case Kind::Simplex:   obj.shape = buildSimplex  (dimension()); break;
-    case Kind::Empty:     obj.shape = std::make_shared<NDShape>(dimension()); break;
+        case Kind::Hypercube:      obj.shape = buildHypercube     (dimension()); break;
+        case Kind::Simplex:        obj.shape = buildSimplex       (dimension()); break;
+        case Kind::CrossPolytope:  obj.shape = buildCrossPolytope (dimension()); break;
+        case Kind::Permutohedron:  obj.shape = buildPermutohedron (dimension()); break;
+        case Kind::Empty:          obj.shape = std::make_shared<NDShape>(dimension()); break;
     }
 
     obj.projection = this->projection();

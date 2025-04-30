@@ -18,7 +18,13 @@ class AddSceneObjectDialog : public QDialog
 {
     Q_OBJECT
 public:
-    enum class Kind { Empty, Hypercube, Simplex };
+    enum class Kind {
+        Empty = 0,
+        Hypercube,
+        Simplex,
+        CrossPolytope,
+        Permutohedron
+    };
 
     explicit AddSceneObjectDialog(QWidget *parent = nullptr);
 
@@ -65,6 +71,8 @@ private:
     /* internal builders for shapes */
     std::shared_ptr<NDShape> buildHypercube(int n) const;
     std::shared_ptr<NDShape> buildSimplex  (int n) const;
+    std::shared_ptr<NDShape> buildPermutohedron(int n) const;
+    std::shared_ptr<NDShape> buildCrossPolytope(int n) const;
 };
 
 #endif // ADD_SCENE_OBJECT_DIALOG_H
