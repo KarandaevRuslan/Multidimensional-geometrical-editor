@@ -3,11 +3,13 @@
 
 #include <QDialog>
 #include <QTableWidgetItem>
+#include <QTableView>
 #include <QVector>
 #include <memory>
 #include <QUndoStack>
-
 #include "../model/NDShape.h"
+#include "dataModels/adjacencyMatrixModel.h"
+#include "dataModels/vertexTableModel.h"
 
 class QSpinBox;
 class QTableWidget;
@@ -32,38 +34,31 @@ private slots:
     void onDimensionChanged(int d);
     void addVertex();
     void removeVertices();
-    void onVertexTableItemChanged(QTableWidgetItem* it);
-    void onAdjCellClicked(int row, int col);
 
     void showVertContextMenu(const QPoint& pos);
     void copyVertices();
     void cutVertices();
     void pasteVertices();
 
+    void onAdjCellClicked(const QModelIndex& idx);
 private:
-    QHash<QString,QAction*> vertActions_;
-    QList<std::vector<double>> vertClipboard_;
+    void structuralReload();
 
-    // ───────────────── helpers ─────────────────
-    void refreshVertexVerticalHeader();
-    void rebuildVertexTable();
-    void rebuildAdjacencyTable();
-    void refreshAdjHeaders();
-    void internalReload();
+    std::shared_ptr<NDShape> shape_;
+    QUndoStack*              undo_;
 
-    // ───────────────── state ─────────────────
-    std::shared_ptr<NDShape> shape_;            ///< the working clone
-    QVector<std::size_t>     rowToId_;          ///< row→vertex-ID map
+    QSpinBox*               dimSpin_{};
+    QTableView*             vertView_{};
+    QTableView*             adjView_{};
+    VertexTableModel*       vertModel_{};
+    AdjacencyMatrixModel*   adjModel_{};
 
-    // ───────────────── ui ─────────────────
-    QSpinBox*     dimSpin_      = nullptr;
-    QTableWidget* vertTable_    = nullptr;
-    QTableWidget* adjTable_     = nullptr;
+    QVector<std::vector<double>>    vertClipboard_;
+    QHash<QString,QAction*>         vertActs_;
+    std::shared_ptr<std::vector<std::size_t>> rowToId_;
 
-    QColor colorUndefined_ = Qt::black;
-    QColor colorTrue_ = Qt::darkGreen;
-    QColor colorFalse_ = Qt::darkRed;
-    QUndoStack *undoStack_;
+    int dimMin_ = 3;
+    int   dimMax_ = 20;
 };
 
 #endif // NDSHAPE_EDITOR_DIALOG_H

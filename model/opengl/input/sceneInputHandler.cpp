@@ -107,6 +107,8 @@ void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
     camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
 
     QCursor::setPos(centerScreenPos_);
+
+    emit cameraMoved();
 }
 
 void SceneInputHandler::mousePressEvent(QMouseEvent* event)

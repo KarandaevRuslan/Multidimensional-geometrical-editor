@@ -101,13 +101,46 @@ std::size_t Scene::objectCount() const {
     return objects_.size();
 }
 
+inline std::vector<Rotator>
+collapseAdjacentRotators(const std::vector<Rotator>& src)
+{
+    std::vector<Rotator> collapsed;
+    if (src.empty()) return collapsed;
+
+    std::size_t  curA1   = src.front().axis1();
+    std::size_t  curA2   = src.front().axis2();
+    double       curAng  = src.front().angle();
+
+    const auto flush = [&]() {
+        constexpr double Tau = 2.0 * M_PI;
+        curAng = std::fmod(curAng, Tau);
+        collapsed.emplace_back(curA1, curA2, curAng);
+    };
+
+    for (std::size_t i = 1; i < src.size(); ++i) {
+        const Rotator& r = src[i];
+        if (r.axis1() == curA1 && r.axis2() == curA2) {
+            curAng += r.angle();
+        } else {
+            flush();
+            curA1  = r.axis1();
+            curA2  = r.axis2();
+            curAng = r.angle();
+        }
+    }
+    flush();
+    return collapsed;
+}
+
 ConvertedData Scene::convertObject(const SceneObject& obj, int sceneDimension)
 {
     ConvertedData res;
     res.objectUid = obj.uid;
 
+    auto optimisedRotators = collapseAdjacentRotators(obj.rotators);
+
     NDShape transformed = *obj.shape;
-    for (const Rotator& r : obj.rotators)
+    for (const Rotator& r : optimisedRotators)
         transformed = r.applyRotation(transformed);
 
     if(!obj.projection && transformed.getDimension() > sceneDimension)

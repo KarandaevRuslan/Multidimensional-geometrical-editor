@@ -156,6 +156,9 @@ public:
      */
     void updateFromAdjacencyMatrix(const std::vector<std::vector<int>>& matrix);
 
+    int verticesSize() const;
+    int edgesSize() const;
+
 private:
     std::size_t dimension_;
     std::map<std::size_t, std::vector<double>> vertices_;

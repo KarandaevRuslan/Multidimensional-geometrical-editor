@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
+#include <QTableView>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
@@ -15,83 +16,32 @@
 #include <QStyledItemDelegate>
 #include <QUndoStack>
 #include <QUndoCommand>
-
-// ───────────────────────────────────────────────────────── helper ──
-namespace {
-constexpr int   kDimMin   = 3;
-constexpr int   kDimMax   = 20;
-constexpr char  kFloatFmt[] = "%.6g";
-}
-
-// ──────────────────────────────────────────────────────── delegates ──
-namespace {
-class NoHoverDelegate final : public QStyledItemDelegate {
-public:
-    using QStyledItemDelegate::QStyledItemDelegate;
-
-    void paint(QPainter* painter,
-               const QStyleOptionViewItem& option,
-               const QModelIndex& index) const override
-    {
-        QStyleOptionViewItem opt(option);
-        opt.state &= ~QStyle::State_MouseOver;
-        opt.state &= ~QStyle::State_HasFocus;
-        QStyledItemDelegate::paint(painter, opt, index);
-    }
-};
-} // unnamed
-
-// ────────────────────────────────────────────── undo command ──
-namespace {
-class ShapeCommand final : public QUndoCommand {
-public:
-    ShapeCommand(std::shared_ptr<NDShape>   shape,
-                 NDShape                    before,
-                 NDShape                    after,
-                 const QString&             text,
-                 std::function<void()>      reloadDlg)
-        : shape_(std::move(shape))
-        , before_(std::move(before))
-        , after_(std::move(after))
-        , reloadDlg_(reloadDlg)
-    {
-        setText(text);
-    }
-
-    void undo() override {
-        *shape_ = before_;
-        reloadDlg_();
-    }
-
-    void redo() override {
-        *shape_ = after_;
-        reloadDlg_();
-    }
-
-private:
-    std::shared_ptr<NDShape> shape_;
-    NDShape                  before_;
-    NDShape                  after_;
-    std::function<void()>    reloadDlg_;
-};
-} // unnamed
+#include "dataModels/vertexTableModel.h"
+#include "dataModels/adjacencyMatrixModel.h"
+#include "commands/shapeCommand.h"
+#include "delegates/noHoverDelegate.h"
+#include "adjacencyMatrixView.h"
+#include <QScrollBar>
 
 // ───────────────────────────────────────────────────────── ctor ──
 NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
                                          QWidget* parent)
     : QDialog(parent)
     , shape_(std::make_shared<NDShape>(startShape))
-    , undoStack_(new QUndoStack(this))
+    , undo_(new QUndoStack(this))
+    , rowToId_(std::make_shared<std::vector<std::size_t>>())
 {
     setWindowTitle(tr("Shape editor"));
     resize(650, 600);
 
+    undo_->setUndoLimit(2500);
+
     // allow Ctrl+Z / Ctrl+Y shortcuts anywhere in the dialog
-    auto* undoAct = undoStack_->createUndoAction(this, tr("Undo"));
+    auto* undoAct = undo_->createUndoAction(this, tr("Undo"));
     undoAct->setShortcut(QKeySequence::Undo);
     addAction(undoAct);
 
-    auto* redoAct = undoStack_->createRedoAction(this, tr("Redo"));
+    auto* redoAct = undo_->createRedoAction(this, tr("Redo"));
     redoAct->setShortcut(QKeySequence::Redo);
     addAction(redoAct);
 
@@ -109,9 +59,11 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     dimHBox->addWidget(dimLabel);
 
     dimSpin_ = new QSpinBox(this);
-    dimSpin_->setRange(kDimMin, kDimMax);
+    dimSpin_->setRange(dimMin_, dimMax_);
     dimSpin_->setValue(int(shape_->getDimension()));
     dimSpin_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    connect(dimSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &NDShapeEditorDialog::onDimensionChanged);
     dimHBox->addWidget(dimSpin_);
 
     mainBox->addLayout(dimHBox);
@@ -126,19 +78,22 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     vertVBox->setContentsMargins(6, 5, 6, 5);
     vertVBox->setSpacing(8);
 
-    vertTable_ = new QTableWidget(vertPage);
-    vertTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
-    vertTable_->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    vertTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    vertTable_->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    vertTable_->horizontalHeader()
+    vertModel_ = new VertexTableModel(shape_, undo_, rowToId_, this);
+    vertView_  = new QTableView(vertPage);
+    vertView_->setModel(vertModel_);
+    vertView_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    vertView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    vertView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    vertView_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    vertView_->horizontalHeader()->setDefaultSectionSize(50);
+    vertView_->verticalHeader()->setDefaultSectionSize(25);
+    vertView_->horizontalHeader()
         ->setSectionResizeMode(QHeaderView::Interactive);
-    vertTable_->verticalHeader()
+    vertView_->verticalHeader()
         ->setSectionResizeMode(QHeaderView::Interactive);
-    vertTable_->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(vertTable_, &QTableWidget::itemChanged,
-            this,       &NDShapeEditorDialog::onVertexTableItemChanged);
-    connect(vertTable_, &QWidget::customContextMenuRequested,
+
+    vertView_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(vertView_, &QWidget::customContextMenuRequested,
             this,       &NDShapeEditorDialog::showVertContextMenu);
 
     auto makeAction = [this](const QString& name,
@@ -149,8 +104,8 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
         act->setShortcut(shortcut);
         act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
         connect(act, &QAction::triggered, this, slotPtr);
-        vertTable_->addAction(act);
-        vertActions_[name] = act;
+        vertView_->addAction(act);
+        vertActs_[name] = act;
     };
 
     makeAction("add",    tr("Add"),    QKeySequence::New,    &NDShapeEditorDialog::addVertex);
@@ -159,7 +114,7 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     makeAction("paste",  tr("Paste"),  QKeySequence::Paste,  &NDShapeEditorDialog::pasteVertices);
     makeAction("delete", tr("Delete"), QKeySequence::Delete, &NDShapeEditorDialog::removeVertices);
 
-    vertVBox->addWidget(vertTable_);
+    vertVBox->addWidget(vertView_);
 
     /* --- Adjacency page ---------------------------------------- */
     auto* adjPage = new QWidget(this);
@@ -167,18 +122,19 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     adjVBox->setContentsMargins(8, 6, 8, 6);
     adjVBox->setSpacing(6);
 
-    adjTable_ = new QTableWidget(adjPage);
-    adjTable_->setSelectionMode(QAbstractItemView::NoSelection);
-    adjTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    adjTable_->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    adjTable_->horizontalHeader()->setDefaultSectionSize(20);
-    adjTable_->verticalHeader()->setDefaultSectionSize(20);
-    adjTable_->setItemDelegate(new NoHoverDelegate(adjTable_));
+    adjModel_ = new AdjacencyMatrixModel(shape_, undo_, rowToId_, this);
+    adjView_  = new AdjacencyMatrixView(adjPage);
+    adjView_->setModel(adjModel_);
+    adjView_->setSelectionMode(QAbstractItemView::NoSelection);
+    adjView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    adjView_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    adjView_->setItemDelegate(new NoHoverDelegate(adjView_));
+    adjView_->horizontalHeader()->setDefaultSectionSize(20);
+    adjView_->verticalHeader()->setDefaultSectionSize(20);
+    connect(adjView_,&QTableView::clicked,
+            this,&NDShapeEditorDialog::onAdjCellClicked);
 
-    connect(adjTable_, &QTableWidget::cellClicked,
-            this,       &NDShapeEditorDialog::onAdjCellClicked);
-
-    adjVBox->addWidget(adjTable_);
+    adjVBox->addWidget(adjView_);
 
     tableTabs->addTab(vertPage, tr("Vertices"));
     tableTabs->addTab(adjPage,  tr("Edges"));
@@ -188,23 +144,15 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     connect(btnBox,  &QDialogButtonBox::accepted, this, &NDShapeEditorDialog::accept);
     connect(btnBox,  &QDialogButtonBox::rejected, this, &NDShapeEditorDialog::reject);
     mainBox->addWidget(btnBox);
-
-    /* ── Dimension change --------------------------------------- */
-    connect(dimSpin_, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &NDShapeEditorDialog::onDimensionChanged);
-
-    /* ── Initial fill ------------------------------------------- */
-    internalReload();
 }
 
-// ───────────────────────────────────────── public helpers ──
-void NDShapeEditorDialog::internalReload()
+void NDShapeEditorDialog::structuralReload()
 {
-    blockSignals(true);
-    rebuildVertexTable();
-    rebuildAdjacencyTable();
-    dimSpin_->setValue(int(shape_->getDimension()));
-    blockSignals(false);
+    vertModel_->reload();
+    adjModel_->reload();
+    dimSpin_->blockSignals(true);
+    dimSpin_->setValue(static_cast<int>(shape_->getDimension()));
+    dimSpin_->blockSignals(false);
 }
 
 // ─────────────────────────────────── dimension changed ──
@@ -217,51 +165,9 @@ void NDShapeEditorDialog::onDimensionChanged(int d)
     *shape_ = shape_->clone(std::size_t(d));
     NDShape after  = *shape_;
 
-    undoStack_->push(new ShapeCommand(
+    undo_->push(new ShapeCommand(
         shape_, before, after, tr("Change dimension"),
-        [this](){internalReload();}));
-}
-
-// ───────────────────────────── vertices (table rebuild/helpers) ──
-void NDShapeEditorDialog::refreshVertexVerticalHeader()
-{
-    QStringList hdr;
-    for (int i = 0; i < static_cast<int>(rowToId_.size()); ++i)
-        hdr << QString::number(i + 1);
-    vertTable_->setVerticalHeaderLabels(hdr);
-}
-
-void NDShapeEditorDialog::rebuildVertexTable()
-{
-    vertTable_->blockSignals(true);
-    vertTable_->clear();
-
-    const auto verts = shape_->getAllVertices();
-    const int  rows  = int(verts.size());
-    const int  cols  = int(shape_->getDimension());
-
-    vertTable_->setRowCount(rows);
-    vertTable_->setColumnCount(cols);
-
-    QStringList hdr;
-    for (int c = 0; c < cols; ++c)
-        hdr << tr("x%1").arg(c + 1);
-    vertTable_->setHorizontalHeaderLabels(hdr);
-
-    rowToId_.resize(rows);
-
-    for (int r = 0; r < rows; ++r) {
-        std::size_t id       = verts[r].first;
-        const auto& coord    = verts[r].second;
-        rowToId_[r] = id;
-        for (int c = 0; c < cols; ++c) {
-            auto* it = new QTableWidgetItem(QString::asprintf(kFloatFmt, coord[c]));
-            vertTable_->setItem(r, c, it);
-        }
-    }
-
-    refreshVertexVerticalHeader();
-    vertTable_->blockSignals(false);
+        [this](){ structuralReload(); }));
 }
 
 // ───────────────────────────── vertices (operations) ──
@@ -271,67 +177,37 @@ void NDShapeEditorDialog::addVertex()
     shape_->addVertex(std::vector<double>(shape_->getDimension(), 0.0));
     NDShape after  = *shape_;
 
-    undoStack_->push(new ShapeCommand(
+    undo_->push(new ShapeCommand(
         shape_, before, after, tr("Add vertex"),
-        [this](){internalReload();}));
+        [this](){ structuralReload();}));
 }
 
 void NDShapeEditorDialog::removeVertices()
 {
-    auto sel = vertTable_->selectionModel()->selectedRows();
-    if (sel.isEmpty()) return;
+    auto sel=vertView_->selectionModel()->selectedRows();
+    if(sel.isEmpty()) return;
 
-    NDShape before = *shape_;
+    NDShape before=*shape_;
 
-    std::vector<std::size_t> ids;
-    for (const QModelIndex& idx : sel)
-        ids.push_back(rowToId_[idx.row()]);
+    QVector<std::size_t> ids;
+    ids.reserve(sel.size());
+    for(const QModelIndex& idx : sel)
+        ids << rowToId_->at(std::size_t(idx.row()));
 
     std::sort(ids.begin(), ids.end(), std::greater<>());
-    for (auto id : ids)
-        shape_->removeVertex(id);
+    for(auto id : ids) shape_->removeVertex(id);
 
     NDShape after = *shape_;
-    undoStack_->push(new ShapeCommand(
+    undo_->push(new ShapeCommand(
         shape_, before, after, tr("Remove vertices"),
-        [this](){internalReload();}));
+        [this](){ structuralReload();}));
 }
-
-void NDShapeEditorDialog::onVertexTableItemChanged(QTableWidgetItem* it)
-{
-    if (!it) return;
-
-    const int row = it->row();
-    const int col = it->column();
-
-    std::size_t id = rowToId_[row];
-    auto coords = shape_->getVertex(id);
-
-    bool ok = false;
-    double newValue = it->text().toDouble(&ok);
-    if (!ok) return;
-
-    constexpr double epsilon = 1e-8;
-    if (std::abs(coords[col] - newValue) < epsilon)
-        return;
-
-    NDShape before = *shape_;
-    coords[col] = newValue;
-    shape_->setVertexCoords(id, coords);
-    NDShape after = *shape_;
-
-    undoStack_->push(new ShapeCommand(
-        shape_, before, after, tr("Edit vertex"),
-        [this](){ internalReload(); }));
-}
-
 
 void NDShapeEditorDialog::copyVertices()
 {
     vertClipboard_.clear();
-    auto sel = vertTable_->selectionModel()->selectedRows();
-    for (const QModelIndex& idx : sel)
-        vertClipboard_.append(shape_->getVertex(rowToId_[idx.row()]));
+    for(const QModelIndex& idx: vertView_->selectionModel()->selectedRows())
+        vertClipboard_ << shape_->getVertex(rowToId_->at(std::size_t(idx.row())));
 }
 
 void NDShapeEditorDialog::cutVertices()
@@ -357,88 +233,26 @@ void NDShapeEditorDialog::pasteVertices()
     }
 
     NDShape after = *shape_;
-    undoStack_->push(new ShapeCommand(
+    undo_->push(new ShapeCommand(
         shape_, before, after, tr("Paste vertices"),
-        [this](){internalReload();}));
+        [this](){ structuralReload();}));
 }
 
-// ───────────────────────────── adjacency matrix ──
-void NDShapeEditorDialog::refreshAdjHeaders()
+/* edges ----------------------------------------------------------*/
+void NDShapeEditorDialog::onAdjCellClicked(const QModelIndex& idx)
 {
-    QStringList hdr;
-    for (int i = 0; i < static_cast<int>(rowToId_.size()); ++i)
-        hdr << QString::number(i + 1);
-    adjTable_->setHorizontalHeaderLabels(hdr);
-    adjTable_->setVerticalHeaderLabels(hdr);
-}
-
-void NDShapeEditorDialog::rebuildAdjacencyTable()
-{
-    adjTable_->blockSignals(true);
-    adjTable_->clear();
-
-    const int n = rowToId_.size();
-    adjTable_->setRowCount(n);
-    adjTable_->setColumnCount(n);
-    refreshAdjHeaders();
-
-    const auto mat = shape_->getAdjacencyMatrix();
-
-    for (int r = 0; r < n; ++r) {
-        for (int c = 0; c < n; ++c) {
-            auto* it = new QTableWidgetItem;
-            if (r == c) {
-                it->setFlags(it->flags() & ~Qt::ItemIsEditable & ~Qt::ItemIsSelectable);
-                it->setBackground(QBrush(colorUndefined_));
-            } else {
-                bool connected = (mat[r + 1][c + 1] != 0);
-                it->setBackground(QBrush(connected ? colorTrue_ : colorFalse_));
-            }
-            adjTable_->setItem(r, c, it);
-        }
-    }
-
-    adjTable_->blockSignals(false);
-}
-
-void NDShapeEditorDialog::onAdjCellClicked(int row, int col)
-{
-    if (row == col) return;              // ignore diagonal
-
-    auto* it    = adjTable_->item(row, col);
-    auto* itSym = adjTable_->item(col, row);
-    if (!it || !itSym) return;
-
-    NDShape before = *shape_;
-
-    const bool wasOn = (it->background().color() == colorTrue_);
-    const bool nowOn = !wasOn;
-    const QColor fill = nowOn ? colorTrue_ : colorFalse_;
-    it->setBackground(fill);
-    itSym->setBackground(fill);
-
-    std::size_t id1 = rowToId_[row];
-    std::size_t id2 = rowToId_[col];
-    if (nowOn)
-        shape_->addEdge(id1, id2);
-    else
-        shape_->removeEdge(id1, id2);
-
-    NDShape after = *shape_;
-    undoStack_->push(new ShapeCommand(
-        shape_, before, after, tr("Toggle edge"),
-        [this](){internalReload();}));
+    adjModel_->toggleEdge(idx.row(), idx.column());
 }
 
 // ───────────────────────────── context menu helpers ──
 void NDShapeEditorDialog::showVertContextMenu(const QPoint& pos)
 {
     QMenu menu(this);
-    menu.addAction(vertActions_["add"]);
+    menu.addAction(vertActs_["add"]);
     menu.addSeparator();
-    menu.addAction(vertActions_["copy"]);
-    menu.addAction(vertActions_["cut"]);
-    menu.addAction(vertActions_["paste"]);
-    menu.addAction(vertActions_["delete"]);
-    menu.exec(vertTable_->viewport()->mapToGlobal(pos));
+    menu.addAction(vertActs_["copy"]);
+    menu.addAction(vertActs_["cut"]);
+    menu.addAction(vertActs_["paste"]);
+    menu.addAction(vertActs_["delete"]);
+    menu.exec(vertView_->viewport()->mapToGlobal(pos));
 }

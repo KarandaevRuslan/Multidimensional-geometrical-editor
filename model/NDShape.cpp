@@ -248,3 +248,13 @@ const std::vector<double>& NDShape::getVertex(std::size_t vertexId) const
     }
     return it->second;
 }
+
+int NDShape::verticesSize() const
+{
+    return vertices_.size();
+}
+
+int NDShape::edgesSize() const
+{
+    return edges_.size();
+}

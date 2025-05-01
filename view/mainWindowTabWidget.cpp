@@ -28,6 +28,7 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     // Construct the list view and undo stack.
     listView_ = new QListView(leftWidget);
     undoStack_ = std::make_unique<QUndoStack>(this);
+    undoStack_->setUndoLimit(2500);
 
     // Enable context menu on the list:
     listView_->setContextMenuPolicy(Qt::CustomContextMenu);

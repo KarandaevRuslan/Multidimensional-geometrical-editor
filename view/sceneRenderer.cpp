@@ -32,6 +32,8 @@ SceneRenderer::SceneRenderer(QWindow* parent)
             {
                 setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
             });
+        connect(inputHandler_.get(), &SceneInputHandler::cameraMoved,
+                this, [this](){update();});
     }
 }
 
@@ -284,7 +286,6 @@ QMatrix4x4 SceneRenderer::buildMvpMatrix() const
 void SceneRenderer::updateCamera()
 {
     inputHandler_->updateCamera(*cameraController_);
-    update();
 }
 
 
@@ -292,6 +293,7 @@ void SceneRenderer::updateAll() {
     if (geometryManager_) {
         geometryManager_->markGeometryDirty();
         isUpdateShadowRequired = true;
+        update();
     }
 }
 
