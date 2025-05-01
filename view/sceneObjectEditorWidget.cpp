@@ -468,6 +468,3 @@ void SceneObjectEditorWidget::showRotContextMenu(const QPoint &pos)
 
     menu.exec(rotTable_->viewport()->mapToGlobal(pos));
 }
-
-
-

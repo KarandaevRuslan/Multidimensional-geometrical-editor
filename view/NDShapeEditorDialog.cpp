@@ -78,7 +78,8 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     vertVBox->setContentsMargins(6, 5, 6, 5);
     vertVBox->setSpacing(8);
 
-    vertModel_ = new VertexTableModel(shape_, undo_, rowToId_, this);
+    vertModel_ = new VertexTableModel(shape_, undo_, rowToId_,
+                                      [this](){ structuralReload(); }, this);
     vertView_  = new QTableView(vertPage);
     vertView_->setModel(vertModel_);
     vertView_->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -122,7 +123,8 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     adjVBox->setContentsMargins(8, 6, 8, 6);
     adjVBox->setSpacing(6);
 
-    adjModel_ = new AdjacencyMatrixModel(shape_, undo_, rowToId_, this);
+    adjModel_ = new AdjacencyMatrixModel(shape_, undo_, rowToId_,
+                                         [this](){ structuralReload(); }, this);
     adjView_  = new AdjacencyMatrixView(adjPage);
     adjView_->setModel(adjModel_);
     adjView_->setSelectionMode(QAbstractItemView::NoSelection);
@@ -148,7 +150,9 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
 
 void NDShapeEditorDialog::structuralReload()
 {
+    int scroll = vertView_->verticalScrollBar()->value();
     vertModel_->reload();
+    vertView_->verticalScrollBar()->setValue(std::min(scroll, vertView_->verticalScrollBar()->maximum()));
     adjModel_->reload();
     dimSpin_->blockSignals(true);
     dimSpin_->setValue(static_cast<int>(shape_->getDimension()));

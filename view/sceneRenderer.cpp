@@ -32,8 +32,8 @@ SceneRenderer::SceneRenderer(QWindow* parent)
             {
                 setCursor(enabled ? Qt::BlankCursor : Qt::ArrowCursor);
             });
-        connect(inputHandler_.get(), &SceneInputHandler::cameraMoved,
-                this, [this](){update();});
+        // connect(inputHandler_.get(), &SceneInputHandler::cameraMoved,
+        //         this, [this](){update();});
     }
 }
 
@@ -285,7 +285,11 @@ QMatrix4x4 SceneRenderer::buildMvpMatrix() const
 
 void SceneRenderer::updateCamera()
 {
-    inputHandler_->updateCamera(*cameraController_);
+    if(inputHandler_->updateCamera(*cameraController_) || wheelTouched_ || mouseMoved_) {
+        wheelTouched_ = false;
+        mouseMoved_ = false;
+        update();
+    }
 }
 
 
@@ -315,7 +319,9 @@ void SceneRenderer::mouseMoveEvent(QMouseEvent* event)
 {
     // In our event filter we already check freeLook mode.
     if (inputHandler_ && cameraController_)
-        inputHandler_->mouseMoveEvent(event, *cameraController_);
+        if (inputHandler_->mouseMoveEvent(event, *cameraController_))
+            mouseMoved_ = true;
+
     QOpenGLWindow::mouseMoveEvent(event);
 }
 
@@ -345,8 +351,10 @@ void SceneRenderer::mouseDoubleClickEvent(QMouseEvent* event)
 
 void SceneRenderer::wheelEvent(QWheelEvent* event)
 {
-    if (inputHandler_ && cameraController_)
+    if (inputHandler_ && cameraController_) {
         inputHandler_->wheelEvent(event, *cameraController_);
+        wheelTouched_ = true;
+    }
     QOpenGLWindow::wheelEvent(event);
 }
 

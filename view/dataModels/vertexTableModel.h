@@ -15,6 +15,7 @@ public:
     VertexTableModel(std::shared_ptr<NDShape> shape,
                      QUndoStack* undoStack,
                      std::shared_ptr<std::vector<std::size_t>> rowToId,
+                     std::function<void()> structuralReload,
                      QObject* parent = nullptr);
 
     /* Qt interface */
@@ -32,6 +33,8 @@ private:
     std::shared_ptr<NDShape> shape_;
     QUndoStack*              undo_;         // not owned
     std::shared_ptr<std::vector<std::size_t>> rowToId_;
+
+    std::function<void()> structuralReload_;
 };
 
 #endif // VERTEX_TABLE_MODEL_H

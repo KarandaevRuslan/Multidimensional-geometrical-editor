@@ -52,8 +52,9 @@ public:
      * @brief Handles mouse move events for free-look rotation.
      * @param event   A pointer to the QMouseEvent.
      * @param camera  Reference to a CameraController to be manipulated.
+     * @return True if camera was moved.
      */
-    void mouseMoveEvent(QMouseEvent* event, CameraController& camera);
+    bool mouseMoveEvent(QMouseEvent* event, CameraController& camera);
 
     /**
      * @brief Handles mouse press events and updates.
@@ -83,8 +84,9 @@ public:
     /**
      * @brief Called periodically (e.g., via timer) to update camera movement smoothly.
      * @param camera  Reference to a CameraController to be manipulated.
+     * @return True if camera position was changed.
      */
-    void updateCamera(CameraController& camera);
+    bool updateCamera(CameraController& camera);
 
     /**
      * @brief Sets the widget center (in global coordinates) for recentering the mouse in free-look.

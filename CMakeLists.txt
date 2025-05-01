@@ -82,6 +82,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         ${APP_ICON_RC}
         view/adjacencyMatrixView.h view/adjacencyMatrixView.cpp
+        view/dataModels/rotatorTableModel.h view/dataModels/rotatorTableModel.cpp
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 

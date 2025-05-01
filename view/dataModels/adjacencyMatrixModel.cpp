@@ -8,9 +8,10 @@
 AdjacencyMatrixModel::AdjacencyMatrixModel(std::shared_ptr<NDShape> s,
                                    QUndoStack* st,
                                    std::shared_ptr<std::vector<std::size_t>> rti,
+                                   std::function<void()> sr,
                                    QObject* p)
     : QAbstractTableModel(p), shape_(std::move(s)),
-    rowToId_(std::move(rti)), undo_(st)
+    rowToId_(std::move(rti)), undo_(st), structuralReload_(std::move(sr))
 {
     reload();
 }
@@ -77,7 +78,7 @@ void AdjacencyMatrixModel::toggleEdge(int row,int col)
 
     undo_->push(new ShapeCommand(shape_,before,after,
                                  tr("Toggle edge"),
-                                 [this]{ reload(); }));
+                                 [this]{ structuralReload_(); }));
 
     QModelIndex tl=index(row,col), br=index(col,row);
     emit dataChanged(tl, tl, {Qt::BackgroundRole});

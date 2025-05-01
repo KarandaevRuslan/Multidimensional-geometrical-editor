@@ -91,17 +91,17 @@ void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*ca
     }
 }
 
-void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
+bool SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& camera)
 {
     if (!isWindows || !freeLookMode_ && !mouseButtonPressed_)
-        return;
+        return false;
 
     const QPoint  globalPos = event->globalPosition().toPoint();
 
     int dx = globalPos.x() - centerScreenPos_.x();
     int dy = globalPos.y() - centerScreenPos_.y();
     if (dx == 0 && dy == 0)
-        return;
+        return false;
 
     camera.setYaw  (camera.yaw()   - dx * kMouseSensitivity);
     camera.setPitch(camera.pitch() - dy * kMouseSensitivity);
@@ -109,6 +109,8 @@ void SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
     QCursor::setPos(centerScreenPos_);
 
     emit cameraMoved();
+
+    return true;
 }
 
 void SceneInputHandler::mousePressEvent(QMouseEvent* event)
@@ -124,10 +126,6 @@ void SceneInputHandler::mousePressEvent(QMouseEvent* event)
 
 void SceneInputHandler::mouseReleaseEvent(QMouseEvent* event)
 {
-    if (freeLookMode_) {
-        return;
-    }
-
     if (event->button() == Qt::LeftButton){
         mouseButtonPressed_ = false;
     }
@@ -154,7 +152,7 @@ void SceneInputHandler::wheelEvent(QWheelEvent* event, CameraController& camera)
     emit cameraMoved();
 }
 
-void SceneInputHandler::updateCamera(CameraController &camera)
+bool SceneInputHandler::updateCamera(CameraController &camera)
 {
     // If no movement keys pressed, skip
     if (!forwardPressed_ && !backwardPressed_ &&
@@ -162,7 +160,7 @@ void SceneInputHandler::updateCamera(CameraController &camera)
         !upPressed_ && !downPressed_ &&
         !turnLeftPressed_ && !turnRightPressed_ &&
         !turnUpPressed_ && !turnDownPressed_)
-        return;
+        return false;
 
     // SHIFT => sprint
     float actualSpeed = (shiftPressed_) ? (moveSpeed_ * 2.0f) : moveSpeed_;
@@ -185,6 +183,8 @@ void SceneInputHandler::updateCamera(CameraController &camera)
     if (turnDownPressed_)  camera.setPitch(camera.pitch() - rotationSpeed_);
 
     emit cameraMoved();
+
+    return true;
 }
 
 void SceneInputHandler::setWidgetCenter(const QPoint &globalCenterPos)

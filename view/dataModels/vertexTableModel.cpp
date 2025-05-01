@@ -8,9 +8,10 @@
 VertexTableModel::VertexTableModel(std::shared_ptr<NDShape> s,
                                    QUndoStack* st,
                                    std::shared_ptr<std::vector<std::size_t>> rti,
+                                   std::function<void()> sr,
                                    QObject* p)
     : QAbstractTableModel(p), shape_(std::move(s)),
-    rowToId_(std::move(rti)), undo_(st)
+    rowToId_(std::move(rti)), undo_(st), structuralReload_(std::move(sr))
 {
     reload();
 }
@@ -68,7 +69,7 @@ bool VertexTableModel::setData(const QModelIndex& idx,
 
     undo_->push(new ShapeCommand(shape_, before, after,
                                  tr("Edit vertex"),
-                                 [this]{ reload(); }));
+                                 [this]{ structuralReload_(); }));
 
     emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});
     return true;

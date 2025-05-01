@@ -16,6 +16,7 @@ public:
     AdjacencyMatrixModel(std::shared_ptr<NDShape> shape,
                      QUndoStack* undoStack,
                      std::shared_ptr<std::vector<std::size_t>> rowToId,
+                     std::function<void()> structuralReload,
                      QObject* parent = nullptr);
 
     int            rowCount   (const QModelIndex& = {}) const override;
@@ -56,6 +57,8 @@ private:
 
     // fast O(1) edge lookup
     std::unordered_set<std::pair<std::size_t,std::size_t>, PairHash> edges_;
+
+    std::function<void()> structuralReload_;
 };
 
 #endif // ADJACENCY_MATRIX_MODEL_H

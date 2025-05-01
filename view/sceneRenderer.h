@@ -223,6 +223,8 @@ private:
     float kClearColorG_ = 0.55f;
     float kClearColorB_ = 0.55f;
     float kClearColorA_ = 1.0f;
+    bool wheelTouched_ = false;
+    bool mouseMoved_ = false;;
 };
 
 #endif // SCENE_RENDERER_H
