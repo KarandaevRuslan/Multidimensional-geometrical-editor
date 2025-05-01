@@ -27,9 +27,9 @@ public:
 
     /* user interaction: toggle via view->clicked */
     void toggleEdge(int row, int col);
+    void setEdge(int row, int col, bool isEdge);
 
     void reload();
-
 
 private:
     struct PairHash {

@@ -9,5 +9,6 @@ void NoHoverDelegate::paint(QPainter* painter,
     QStyleOptionViewItem opt(option);
     opt.state &= ~QStyle::State_MouseOver;
     opt.state &= ~QStyle::State_HasFocus;
+    opt.state &= ~QStyle::State_Selected;
     QStyledItemDelegate::paint(painter, opt, index);
 }

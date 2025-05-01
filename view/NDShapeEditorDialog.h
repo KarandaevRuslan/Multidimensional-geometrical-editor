@@ -41,6 +41,7 @@ private slots:
     void pasteVertices();
 
     void onAdjCellClicked(const QModelIndex& idx);
+    void onAdjCellSelected(const QItemSelection &selected, const QItemSelection &deselected);
 private:
     void structuralReload();
 

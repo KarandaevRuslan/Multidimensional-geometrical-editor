@@ -21,6 +21,7 @@
 #include "commands/shapeCommand.h"
 #include "delegates/noHoverDelegate.h"
 #include "adjacencyMatrixView.h"
+#include <QApplication>
 #include <QScrollBar>
 
 // ───────────────────────────────────────────────────────── ctor ──
@@ -86,7 +87,7 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     vertView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     vertView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     vertView_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    vertView_->horizontalHeader()->setDefaultSectionSize(50);
+    vertView_->horizontalHeader()->setDefaultSectionSize(70);
     vertView_->verticalHeader()->setDefaultSectionSize(25);
     vertView_->horizontalHeader()
         ->setSectionResizeMode(QHeaderView::Interactive);
@@ -127,7 +128,8 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
                                          [this](){ structuralReload(); }, this);
     adjView_  = new AdjacencyMatrixView(adjPage);
     adjView_->setModel(adjModel_);
-    adjView_->setSelectionMode(QAbstractItemView::NoSelection);
+    adjView_->setSelectionMode(QAbstractItemView::SingleSelection);
+    adjView_->setSelectionBehavior(QAbstractItemView::SelectItems);
     adjView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     adjView_->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     adjView_->setItemDelegate(new NoHoverDelegate(adjView_));
@@ -135,6 +137,8 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
     adjView_->verticalHeader()->setDefaultSectionSize(20);
     connect(adjView_,&QTableView::clicked,
             this,&NDShapeEditorDialog::onAdjCellClicked);
+    connect(adjView_->selectionModel(), &QItemSelectionModel::selectionChanged,
+            this, &NDShapeEditorDialog::onAdjCellSelected);
 
     adjVBox->addWidget(adjView_);
 
@@ -246,6 +250,18 @@ void NDShapeEditorDialog::pasteVertices()
 void NDShapeEditorDialog::onAdjCellClicked(const QModelIndex& idx)
 {
     adjModel_->toggleEdge(idx.row(), idx.column());
+}
+
+void NDShapeEditorDialog::onAdjCellSelected(const QItemSelection &selected,
+                                            const QItemSelection &deselected)
+{
+    bool shiftPressed = QApplication::keyboardModifiers() & Qt::ShiftModifier;
+
+    QModelIndexList indexes = selected.indexes();
+
+    for (const QModelIndex &idx : indexes) {
+        adjModel_->setEdge(idx.row(), idx.column(), !shiftPressed);
+    }
 }
 
 // ───────────────────────────── context menu helpers ──

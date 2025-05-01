@@ -33,7 +33,7 @@ QVariant AdjacencyMatrixModel::headerData(int s, Qt::Orientation, int role) cons
 
 Qt::ItemFlags AdjacencyMatrixModel::flags(const QModelIndex& i) const
 {
-    return i.isValid() ? Qt::ItemIsEnabled : Qt::NoItemFlags;
+    return i.isValid() ? Qt::ItemIsEnabled | Qt::ItemIsSelectable : Qt::NoItemFlags;
 }
 
 // ────── fast edge check ──────────────────────────────────────────────────────
@@ -83,6 +83,17 @@ void AdjacencyMatrixModel::toggleEdge(int row,int col)
     QModelIndex tl=index(row,col), br=index(col,row);
     emit dataChanged(tl, tl, {Qt::BackgroundRole});
     emit dataChanged(br, br, {Qt::BackgroundRole});
+}
+
+void AdjacencyMatrixModel::setEdge(int row, int col, bool isEdge)
+{
+    if(row == col) return;
+    std::size_t a = rowToId_->at(row), b = rowToId_->at(col);
+    bool nowOn = !edgeExists(a,b);
+
+    if(nowOn != isEdge) return;
+
+    toggleEdge(row, col);
 }
 
 /*──────────── reload cache ───────────────────────────────────────*/

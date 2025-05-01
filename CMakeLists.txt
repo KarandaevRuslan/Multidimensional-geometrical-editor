@@ -56,6 +56,8 @@ set(PROJECT_SOURCES
     view/dataModels/adjacencyMatrixModel.h view/dataModels/adjacencyMatrixModel.cpp
     view/commands/shapeCommand.h view/commands/shapeCommand.cpp
     view/delegates/noHoverDelegate.h view/delegates/noHoverDelegate.cpp
+    view/adjacencyMatrixView.h view/adjacencyMatrixView.cpp
+    view/dataModels/rotatorTableModel.h view/dataModels/rotatorTableModel.cpp
     ${RESOURCES}
     ${UI_FILES}
 )
@@ -81,8 +83,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         ${APP_ICON_RC}
-        view/adjacencyMatrixView.h view/adjacencyMatrixView.cpp
-        view/dataModels/rotatorTableModel.h view/dataModels/rotatorTableModel.cpp
     )
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 
