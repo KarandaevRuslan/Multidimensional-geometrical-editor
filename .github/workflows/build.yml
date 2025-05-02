@@ -159,7 +159,7 @@ jobs:
           # Делаем AppImage
           ./linuxdeployqt.AppImage "${{ matrix.build_dir }}/rel/NDEditor.desktop" \
             -executable="${{ matrix.build_dir }}/rel/NDEditor" \
-            -appimage -bundle-non-qt-libs -verbose=2 -qmake=/usr/lib/qt6/bin/qmake
+            -appimage -bundle-non-qt-libs -verbose=2
             
       # 4) Upload from build/rel
       - name: Upload artefact
