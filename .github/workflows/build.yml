@@ -142,7 +142,7 @@ jobs:
           set -x
           
           sudo apt-get update
-          sudo apt-get install -y libfuse2
+          sudo apt-get install -y libfuse2  qt6-tools-dev-tools
       
           QT_DEPLOY_TOOL=/usr/lib/qt6/bin/qt6deploy
 
