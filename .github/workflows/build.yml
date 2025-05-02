@@ -149,16 +149,16 @@ jobs:
             qt6-base-dev qt6-tools-dev-tools \
             wget libglib2.0-bin
 
-          # 2) Download linuxdeployqt
-          LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
+          # 2) Download linuxdeployqt (latest stable AppImage)
+          LINUXDEPLOYQT=linuxdeployqt-x86_64.AppImage
           wget -qO "$LINUXDEPLOYQT" \
-            https://github.com/linuxdeploy/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT
+            "https://github.com/probonopd/linuxdeployqt/releases/latest/download/$LINUXDEPLOYQT"  # 0
           chmod a+x "$LINUXDEPLOYQT"
 
-          # 3) (Optional) Download appimagetool if your linuxdeployqt build doesn’t bundle it
+          # 3) (Optional) Download appimagetool if needed
           APPIMAGETOOL=appimagetool-x86_64.AppImage
           wget -qO "$APPIMAGETOOL" \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL
+            "https://github.com/AppImage/AppImageKit/releases/latest/download/$APPIMAGETOOL"
           chmod a+x "$APPIMAGETOOL"
 
           # 4) Prepare AppDir layout
@@ -170,7 +170,7 @@ jobs:
             "$APPDIR/usr/share/applications" \
             "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-          # 5) Copy your binary, .desktop and icon into AppDir
+          # 5) Copy your binary, desktop file and icon
           cp "$BUILD_REL/NDEditor" \
              "$APPDIR/usr/bin/"
           cp "$BUILD_REL/NDEditor.desktop" \
@@ -181,7 +181,7 @@ jobs:
           # 6) Bundle Qt libs & plugins, and produce the .AppImage
           ./"$LINUXDEPLOYQT" \
             "$APPDIR/usr/share/applications/NDEditor.desktop" \
-            -appimage
+            -appimage                                                         # 1
 
           # 7) Move the resulting AppImage into your rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
