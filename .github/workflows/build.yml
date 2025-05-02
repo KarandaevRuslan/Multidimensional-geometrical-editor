@@ -115,14 +115,42 @@ jobs:
           else
             cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
           fi
+          
+      # 3) Deploy Qt-библиотек
+      - name: Deploy Qt libraries (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # windeployqt уже в PATH благодаря install-qt-action
+          windeployqt "${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
 
-      # 3) Upload from build/rel
+      - name: Deploy Qt libraries (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # macdeployqt из qttools в PATH
+          macdeployqt "${{ matrix.build_dir }}/rel/NDEditor.app" -verbose=1
+
+      - name: Install linuxdeployqt (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          wget -qO linuxdeployqt.AppImage \
+            https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt.AppImage
+
+      - name: Deploy Qt libraries (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ./linuxdeployqt.AppImage "${{ matrix.build_dir }}/rel/NDEditor" \
+            -bundle-non-qt-libs -qmake=/usr/lib/qt6/bin/qmake
+            
+      # 4) Upload from build/rel
       - name: Upload artefact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            ${{ matrix.build_dir }}/rel/Release/NDEditor.exe
-            ${{ matrix.build_dir }}/rel/NDEditor
-            ${{ matrix.build_dir }}/rel/NDEditor.app
+            ${{ matrix.build_dir }}/rel/**
           if-no-files-found: error
