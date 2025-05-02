@@ -163,14 +163,19 @@ jobs:
       
           chmod +x "${{ matrix.build_dir }}/rel/NDEditor"
       
+          # Отладочный вывод
+          echo "Содержимое папки rel:" && ls -l "${{ matrix.build_dir }}/rel"
+          echo "Инфо о бинарнике:" && file "${{ matrix.build_dir }}/rel/NDEditor"
+          echo "Содержимое .desktop файла:" && cat "${{ matrix.build_dir }}/rel/NDEditor.desktop"
+      
           # Запускаем сборку AppImage
           ./linuxdeploy-x86_64.AppImage --appdir AppDir \
             --executable="${{ matrix.build_dir }}/rel/NDEditor" \
             --desktop-file="${{ matrix.build_dir }}/rel/NDEditor.desktop" \
             --icon-file="${{ matrix.build_dir }}/rel/ndeditor.png" \
-            -d "${{ matrix.build_dir }}/rel/NDEditor.desktop" \
             --output appimage \
-            -p ./linuxdeploy-plugin-qt-x86_64.AppImage
+            -p ./linuxdeploy-plugin-qt-x86_64.AppImage \
+            --verbose
             
       # 4) Upload from build/rel
       - name: Upload artefact
