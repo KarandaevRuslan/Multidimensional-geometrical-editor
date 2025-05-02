@@ -181,7 +181,6 @@ jobs:
           # 6) Bundle and create AppImage using linuxdeployqt
           ./"$LINUXDEPLOYQT" \
             "$APPDIR/usr/share/applications/NDEditor.desktop" \
-            -qmake "$QT6_INSTALL_DIR/bin/qmake" \
             -appimage
 
           # 7) Move the resulting AppImage into your rel folder
