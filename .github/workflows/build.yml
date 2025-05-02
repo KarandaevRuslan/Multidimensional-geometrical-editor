@@ -134,7 +134,7 @@ jobs:
           # macdeployqt из qttools в PATH
           macdeployqt "${{ matrix.build_dir }}/rel/NDEditor.app" -verbose=1
 
-      - name: Install linuxdeployqt (Linux)
+      - name: Deploy Qt libraries and create AppImage (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -144,12 +144,17 @@ jobs:
             https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod +x linuxdeployqt.AppImage
 
-      - name: Deploy Qt libraries (Linux)
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          ./linuxdeployqt.AppImage "${{ matrix.build_dir }}/rel/NDEditor" \
-            -bundle-non-qt-libs -qmake=/usr/lib/qt6/bin/qmake
+          echo "[Desktop Entry]
+          Name=NDEditor
+          Exec=NDEditor
+          Icon=ndeditor
+          Type=Application
+          Categories=Utility;" > "${{ matrix.build_dir }}/rel/NDEditor.desktop"
+      
+          cp ./images/app_icon.png "${{ matrix.build_dir }}/rel/ndeditor.png" || true
+          
+          ./linuxdeployqt.AppImage "${{ matrix.build_dir }}/rel/NDEditor.desktop" \
+            -appimage -bundle-non-qt-libs -qmake=/usr/lib/qt6/bin/qmake
             
       # 4) Upload from build/rel
       - name: Upload artefact
