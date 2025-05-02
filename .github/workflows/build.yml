@@ -152,9 +152,14 @@ jobs:
           Categories=Utility;" > "${{ matrix.build_dir }}/rel/NDEditor.desktop"
       
           cp ./images/app_icon.png "${{ matrix.build_dir }}/rel/ndeditor.png" || true
-          
+
+          # Делаем бинарь исполняемым (важно для AppImage)
+          chmod +x "${{ matrix.build_dir }}/rel/NDEditor"
+      
+          # Делаем AppImage
           ./linuxdeployqt.AppImage "${{ matrix.build_dir }}/rel/NDEditor.desktop" \
-            -appimage -bundle-non-qt-libs -qmake=/usr/lib/qt6/bin/qmake
+            -executable="${{ matrix.build_dir }}/rel/NDEditor" \
+            -appimage -bundle-non-qt-libs -verbose=2 -qmake=/usr/lib/qt6/bin/qmake
             
       # 4) Upload from build/rel
       - name: Upload artefact
