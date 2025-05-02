@@ -19,18 +19,21 @@ jobs:
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
+            dist_path: build/rel/NDEditor.AppImage
           - os: windows-latest
             host: windows
             arch: win64_msvc2019_64
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
+            dist_path: build/rel/Release/*
           - os: macos-latest
             host: mac
             arch: clang_64
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
+            dist_path: build/rel/NDEditor.app/**
 
     steps:
       - uses: actions/checkout@v4
@@ -190,12 +193,12 @@ jobs:
 
           # Move resulting AppImage into rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
+          mv "$BUILD_REL"/NDEditor-*-x86_64.AppImage "$BUILD_REL"/NDEditor.AppImage
             
       # 4) Upload from build/rel
       - name: Upload artefact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
-          path: |
-            ${{ matrix.build_dir }}/rel/**
+          path: ${{ matrix.dist_path }}
           if-no-files-found: error
