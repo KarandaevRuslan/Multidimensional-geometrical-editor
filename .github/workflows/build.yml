@@ -40,7 +40,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y qt6-base-dev qt6-tools-dev qtbase5-dev-tools ninja-build libgtest-dev
+          sudo apt-get install -y \
+            qt6-base-dev qt6-tools-dev qt6-linguist-tools qt6-wayland-dev \
+            libglu1-mesa-dev libgl1-mesa-dev qt6-opengl-dev qtbase5-dev-tools \
+            libfuse2 ninja-build libgtest-dev
 
       - name: Install Qt (Windows & macOS)
         if: runner.os != 'Linux'
