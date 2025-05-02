@@ -11,13 +11,34 @@ bool SceneObjectListView::event(QEvent* ev) {
         {
 #ifdef Q_OS_WIN
             quint32 vk = ke->nativeVirtualKey();
-            if (vk == 0x53 || vk == 0x4C) { // S or L
-                ke->accept();             // Block QShortcuts
-                return true;              // and do nothing more
+            if (vk == 0x53 || vk == 0x4C) { // 'S' or 'L'
+                ke->accept();
+                return true;
             }
-#else
+#elif defined(Q_OS_LINUX)
+            static const bool isWayland = (
+                QProcessEnvironment::systemEnvironment()
+                    .value("XDG_SESSION_TYPE", QString())
+                    .compare("wayland", Qt::CaseInsensitive) == 0
+                );
             quint32 sc = ke->nativeScanCode();
-            if (sc == 31  || sc == 38) {  // ScanCode S or L
+            if (isWayland) {
+                // evdev: S=31, L=38
+                if (sc == 31 || sc == 38) {
+                    ke->accept();
+                    return true;
+                }
+            } else {
+                // X11: kernel+8 → S=39, L=46
+                if (sc == 39 || sc == 46) {
+                    ke->accept();
+                    return true;
+                }
+            }
+#elif defined(Q_OS_MAC)
+            quint32 sc = ke->nativeScanCode();
+            // macOS virtual keycodes: S=0x01, L=0x25
+            if (sc == 0x01 || sc == 0x25) {
                 ke->accept();
                 return true;
             }
@@ -41,17 +62,46 @@ void SceneObjectListView::keyPressEvent(QKeyEvent* ev) {
             emit importRequested();
             return;
         }
-#else
+#elif defined(Q_OS_LINUX)
+        static const bool isWayland = (
+            QProcessEnvironment::systemEnvironment()
+                .value("XDG_SESSION_TYPE", QString())
+                .compare("wayland", Qt::CaseInsensitive) == 0
+            );
         quint32 sc = ev->nativeScanCode();
-        if (sc == 31) {               // ScanCode S
+        if (isWayland) {
+            // evdev
+            if (sc == 31) {           // S
+                emit exportRequested();
+                return;
+            }
+            if (sc == 38) {           // L
+                emit importRequested();
+                return;
+            }
+        } else {
+            // X11 (kernel+8)
+            if (sc == 39) {           // S
+                emit exportRequested();
+                return;
+            }
+            if (sc == 46) {           // L
+                emit importRequested();
+                return;
+            }
+        }
+#elif defined(Q_OS_MAC)
+        quint32 sc = ev->nativeScanCode();
+        if (sc == 0x01) {             // macOS S
             emit exportRequested();
             return;
         }
-        if (sc == 38) {               // ScanCode L
+        if (sc == 0x25) {             // macOS L
             emit importRequested();
             return;
         }
 #endif
     }
+
     QListView::keyPressEvent(ev);
 }

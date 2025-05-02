@@ -49,9 +49,28 @@ void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*came
         setFreeLookEnabled(!freeLookMode_);
         return;
     }
-#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+#elif defined(Q_OS_LINUX)
+    static const bool isWayland = (QProcessEnvironment::systemEnvironment()
+                                       .value("XDG_SESSION_TYPE", QString())
+                                       .compare("wayland", Qt::CaseInsensitive) == 0);
     quint32 sc = event->nativeScanCode();
-    if ((event->modifiers() & Qt::ShiftModifier) && sc == 33) {     // ScanCode F = 33
+    if ((event->modifiers() & Qt::ShiftModifier)) {
+        if (isWayland) {
+            if (sc == 33) {          // evdev ScanCode F = 33
+                setFreeLookEnabled(!freeLookMode_);
+                return;
+            }
+        } else {
+            if (sc == 33 + 8) {      // X11 (kernel+8) ScanCode F = 41
+                setFreeLookEnabled(!freeLookMode_);
+                return;
+            }
+        }
+    }
+#elif defined(Q_OS_MAC)
+    quint32 sc = event->nativeScanCode();
+    // kVK_ANSI_F = 0x03
+    if ((event->modifiers() & Qt::ShiftModifier) && sc == 0x03) {
         setFreeLookEnabled(!freeLookMode_);
         return;
     }
@@ -68,17 +87,31 @@ void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*came
         return;
     }
 
-// W/A/S/D by hardware
+// W/S/A/D by hardware
 #ifdef Q_OS_WIN
     if      (vk == 0x57)      forwardPressed_  = true; // 'W'
     else if (vk == 0x53)      backwardPressed_ = true; // 'S'
     else if (vk == 0x41)      leftPressed_     = true; // 'A'
     else if (vk == 0x44)      rightPressed_    = true; // 'D'
-#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
-    if      (sc == 17)        forwardPressed_  = true; // ScanCode W
-    else if (sc == 31)        backwardPressed_ = true; // ScanCode S
-    else if (sc == 30)        leftPressed_     = true; // ScanCode A
-    else if (sc == 32)        rightPressed_    = true; // ScanCode D
+#elif defined(Q_OS_LINUX)
+    if (isWayland) {
+        // Wayland (evdev-скан-коды)
+        if      (sc == 17) forwardPressed_  = true; // W
+        else if (sc == 31) backwardPressed_ = true; // S
+        else if (sc == 30) leftPressed_     = true; // A
+        else if (sc == 32) rightPressed_    = true; // D
+    } else {
+        // X11 (kernel+8)
+        if      (sc == 25) forwardPressed_  = true; // W
+        else if (sc == 39) backwardPressed_ = true; // S
+        else if (sc == 38) leftPressed_     = true; // A
+        else if (sc == 40) rightPressed_    = true; // D
+    }
+#elif defined(Q_OS_MAC)
+    if      (sc == 0x0D) forwardPressed_  = true;  // W
+    else if (sc == 0x01) backwardPressed_ = true;  // S
+    else if (sc == 0x00) leftPressed_     = true;  // A
+    else if (sc == 0x02) rightPressed_    = true;  // D
 #endif
 
     // Remaining keys
@@ -89,19 +122,37 @@ void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*came
 
 void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*camera*/)
 {
-    // W/A/S/D releasing
+    // W/S/A/D releasing
 #ifdef Q_OS_WIN
     quint32 vk = event->nativeVirtualKey();
     if      (vk == 0x57)      forwardPressed_  = false;
     else if (vk == 0x53)      backwardPressed_ = false;
     else if (vk == 0x41)      leftPressed_     = false;
     else if (vk == 0x44)      rightPressed_    = false;
-#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+#elif defined(Q_OS_LINUX)
+    static const bool isWayland = (QProcessEnvironment::systemEnvironment()
+                                       .value("XDG_SESSION_TYPE", QString())
+                                       .compare("wayland", Qt::CaseInsensitive) == 0);
+
     quint32 sc = event->nativeScanCode();
-    if      (sc == 17)        forwardPressed_  = false;
-    else if (sc == 31)        backwardPressed_ = false;
-    else if (sc == 30)        leftPressed_     = false;
-    else if (sc == 32)        rightPressed_    = false;
+    if (isWayland) {
+        // Wayland (evdev-скан-коды)
+        if      (sc == 17) forwardPressed_  = false; // W
+        else if (sc == 31) backwardPressed_ = false; // S
+        else if (sc == 30) leftPressed_     = false; // A
+        else if (sc == 32) rightPressed_    = false; // D
+    } else {
+        // X11 (kernel+8)
+        if      (sc == 25) forwardPressed_  = false; // W
+        else if (sc == 39) backwardPressed_ = false; // S
+        else if (sc == 38) leftPressed_     = false; // A
+        else if (sc == 40) rightPressed_    = false; // D
+    }
+#elif defined(Q_OS_MAC)
+    if      (sc == 0x0D) forwardPressed_  = false;  // W
+    else if (sc == 0x01) backwardPressed_ = false;  // S
+    else if (sc == 0x00) leftPressed_     = false;  // A
+    else if (sc == 0x02) rightPressed_    = false;  // D
 #endif
 
     // Arrow buttons and other
