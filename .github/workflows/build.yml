@@ -138,23 +138,41 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          set -e
-          set -x
-          
+          set -euo pipefail
+          export QT6_INSTALL_DIR=/usr/lib/qt6
+
           sudo apt-get update
-          sudo apt-get install -y libfuse2  qt6-tools-dev-tools
-      
-          QT_DEPLOY_TOOL=/usr/lib/qt6/bin/qt6deploy
+          sudo apt-get install -y \
+            libfuse2 \
+            qt6-base-dev qt6-tools-dev-tools \
+            wget libglib2.0-bin
+          LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
+          wget -qO $LINUXDEPLOYQT \
+            https://github.com/linuxdeploy/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT
+          chmod +x $LINUXDEPLOYQT
+          APPIMAGETOOL=appimagetool-x86_64.AppImage
+          wget -qO $APPIMAGETOOL \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL
+          chmod +x $APPIMAGETOOL
 
-          APPDIR=build/rel/AppDir
-          mkdir -p "$APPDIR"
+          BUILD_REL=build/rel
+          APPDIR=$BUILD_REL/AppDir
+          rm -rf $APPDIR
+          mkdir -p $APPDIR
 
-          "$QT_DEPLOY_TOOL" --output "$APPDIR" build/rel/NDEditor
+          cp $BUILD_REL/NDEditor $APPDIR/
+          cp $BUILD_REL/NDEditor.desktop $APPDIR/
+          cp $BUILD_REL/ndeditor.png   $APPDIR/
 
-          cp build/rel/NDEditor.desktop "$APPDIR"
-          cp build/rel/ndeditor.png "$APPDIR"
+          ./\$LINUXDEPLOYQT \
+            \$APPDIR/NDEditor \
+            -qmake \$QT6_INSTALL_DIR/bin/qmake \
+            --appdir \$APPDIR \
+            --desktop-file \$APPDIR/NDEditor.desktop \
+            --icon-file \$APPDIR/ndeditor.png \
+            --output appimage
 
-          "$QT_DEPLOY_TOOL" --output build/rel --appimage "$APPDIR"
+          mv NDEditor*.AppImage $BUILD_REL/
             
       # 4) Upload from build/rel
       - name: Upload artefact
