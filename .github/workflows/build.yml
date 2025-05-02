@@ -142,37 +142,34 @@ jobs:
           export QT6_INSTALL_DIR=/usr/lib/qt6
 
           sudo apt-get update
-          sudo apt-get install -y \
-            libfuse2 \
-            qt6-base-dev qt6-tools-dev-tools \
-            wget libglib2.0-bin
-          LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
-          wget -qO $LINUXDEPLOYQT \
+          sudo apt-get install -y libfuse2 qt6-base-dev qt6-tools-dev-tools wget libglib2.0-bin
+ LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
+          wget -qO "$LINUXDEPLOYQT" \
             https://github.com/linuxdeploy/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT
-          chmod +x $LINUXDEPLOYQT
+          chmod a+x "$LINUXDEPLOYQT"
+
           APPIMAGETOOL=appimagetool-x86_64.AppImage
-          wget -qO $APPIMAGETOOL \
+          wget -qO "$APPIMAGETOOL" \
             https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL
-          chmod +x $APPIMAGETOOL
+          chmod a+x "$APPIMAGETOOL"
 
           BUILD_REL=build/rel
           APPDIR=$BUILD_REL/AppDir
-          rm -rf $APPDIR
-          mkdir -p $APPDIR
+          rm -rf "$APPDIR"
+          mkdir -p \
+            "$APPDIR/usr/bin" \
+            "$APPDIR/usr/share/applications" \
+            "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-          cp $BUILD_REL/NDEditor $APPDIR/
-          cp $BUILD_REL/NDEditor.desktop $APPDIR/
-          cp $BUILD_REL/ndeditor.png   $APPDIR/
+          cp "$BUILD_REL/NDEditor"           "$APPDIR/usr/bin/"
+          cp "$BUILD_REL/NDEditor.desktop"   "$APPDIR/usr/share/applications/"
+          cp "$BUILD_REL/ndeditor.png"       "$APPDIR/usr/share/icons/hicolor/256x256/apps/NDEditor.png"
 
-          ./\$LINUXDEPLOYQT \
-            \$APPDIR/NDEditor \
-            -qmake \$QT6_INSTALL_DIR/bin/qmake \
-            --appdir \$APPDIR \
-            --desktop-file \$APPDIR/NDEditor.desktop \
-            --icon-file \$APPDIR/ndeditor.png \
-            --output appimage
+          ./"$LINUXDEPLOYQT" \
+            "$APPDIR/usr/share/applications/NDEditor.desktop" \
+            -appimage
 
-          mv NDEditor*.AppImage $BUILD_REL/
+          mv NDEditor*.AppImage "$BUILD_REL/"
             
       # 4) Upload from build/rel
       - name: Upload artefact
