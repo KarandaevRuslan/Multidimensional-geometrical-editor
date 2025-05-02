@@ -2,6 +2,8 @@
 
 #include <QListView>
 #include <QKeyEvent>
+#include <QProcessEnvironment>
+#include <QLatin1String>
 
 bool SceneObjectListView::event(QEvent* ev) {
     if (ev->type() == QEvent::ShortcutOverride) {

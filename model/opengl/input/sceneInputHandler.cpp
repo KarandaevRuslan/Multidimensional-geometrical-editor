@@ -4,6 +4,8 @@
 #include <QMouseEvent>
 #include <QWheelEvent>
 #include <QCursor>
+#include <QProcessEnvironment>
+#include <QLatin1String>
 
 SceneInputHandler::SceneInputHandler(QObject *parent)
     : QObject(parent)
@@ -149,6 +151,7 @@ void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*ca
         else if (sc == 40) rightPressed_    = false; // D
     }
 #elif defined(Q_OS_MAC)
+    quint32 sc = event->nativeScanCode();
     if      (sc == 0x0D) forwardPressed_  = false;  // W
     else if (sc == 0x01) backwardPressed_ = false;  // S
     else if (sc == 0x00) leftPressed_     = false;  // A
