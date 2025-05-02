@@ -26,14 +26,14 @@ jobs:
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
-            dist_path: build/rel/Release/*
+            dist_path: build/rel/Release/**
           - os: macos-latest
             host: mac
             arch: clang_64
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
-            dist_path: build/rel/NDEditor.app/**
+            dist_path: build/rel/NDEditor.app
 
     steps:
       - uses: actions/checkout@v4
