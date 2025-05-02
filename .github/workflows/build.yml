@@ -144,18 +144,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libfuse2
       
-          # Скачиваем linuxdeploy и плагин для Qt6
-          wget --quiet --output-document=linuxdeploy-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          # Скачиваем linuxdeploy (сам плагин Qt уже встроен!)
+          wget --quiet --output-document=linuxdeploy-x86_64.AppImage \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
       
-          wget --quiet --output-document=linuxdeploy-plugin-qt6-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt6-x86_64.AppImage
-          chmod +x linuxdeploy-plugin-qt6-x86_64.AppImage
-      
-          # Скачиваем appimagetool для упаковки
-          wget --quiet --output-document=appimagetool.AppImage https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          # Скачиваем appimagetool для упаковки (опционально, но иногда полезно)
+          wget --quiet --output-document=appimagetool.AppImage \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool.AppImage
       
-          # Создаем .desktop файл
+          # Подготовка файлов
+          mkdir -p "${{ matrix.build_dir }}/rel"
           echo "[Desktop Entry]
           Name=NDEditor
           Exec=NDEditor
@@ -164,22 +164,24 @@ jobs:
           Categories=Utility;" > "${{ matrix.build_dir }}/rel/NDEditor.desktop"
       
           cp ./images/app_icon.png "${{ matrix.build_dir }}/rel/ndeditor.png" || true
-      
           chmod +x "${{ matrix.build_dir }}/rel/NDEditor"
       
-          # Отладочный вывод
+          # Отладочный вывод текущего состояния rel
           echo "Содержимое папки rel:" && ls -l "${{ matrix.build_dir }}/rel"
           echo "Инфо о бинарнике:" && file "${{ matrix.build_dir }}/rel/NDEditor"
           echo "Содержимое .desktop файла:" && cat "${{ matrix.build_dir }}/rel/NDEditor.desktop"
       
-          # Запускаем сборку AppImage
+          # Создаём AppImage (плагин Qt встроен, указываем -p qt)
           ./linuxdeploy-x86_64.AppImage --appdir AppDir \
             --executable="${{ matrix.build_dir }}/rel/NDEditor" \
             --desktop-file="${{ matrix.build_dir }}/rel/NDEditor.desktop" \
             --icon-file="${{ matrix.build_dir }}/rel/ndeditor.png" \
+            -p qt \
             --output appimage \
-            -p ./linuxdeploy-plugin-qt-x86_64.AppImage \
             --verbose
+      
+          # Перемещаем готовый AppImage в rel
+          mv NDEditor-*.AppImage "${{ matrix.build_dir }}/rel/"
             
       # 4) Upload from build/rel
       - name: Upload artefact
