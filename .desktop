@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=NDEditor
+Exec=NDEditor
+Icon=ndeditor
+Terminal=false
+Categories=Graphics;Science;Education;Engineering;
