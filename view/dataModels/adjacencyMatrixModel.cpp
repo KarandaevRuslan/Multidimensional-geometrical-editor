@@ -19,7 +19,7 @@ AdjacencyMatrixModel::AdjacencyMatrixModel(std::shared_ptr<NDShape> s,
 /*──────────── basic info ─────────────────────────────────────────*/
 int AdjacencyMatrixModel::rowCount(const QModelIndex& p) const
 {
-    return p.isValid()?0:int(rowToId_->size());
+    return p.isValid() ? 0 : int(rowToId_->size());
 }
 int AdjacencyMatrixModel::columnCount(const QModelIndex& p) const
 {
@@ -28,7 +28,7 @@ int AdjacencyMatrixModel::columnCount(const QModelIndex& p) const
 
 QVariant AdjacencyMatrixModel::headerData(int s, Qt::Orientation, int role) const
 {
-    return (role == Qt::DisplayRole)?QVariant(s+1):QVariant();
+    return (role == Qt::DisplayRole) ? QVariant(s + 1) : QVariant();
 }
 
 Qt::ItemFlags AdjacencyMatrixModel::flags(const QModelIndex& i) const
@@ -80,9 +80,9 @@ void AdjacencyMatrixModel::toggleEdge(int row,int col)
                                  tr("Toggle edge"),
                                  [this]{ structuralReload_(); }));
 
-    QModelIndex tl=index(row,col), br=index(col,row);
-    emit dataChanged(tl, tl, {Qt::BackgroundRole});
-    emit dataChanged(br, br, {Qt::BackgroundRole});
+    // QModelIndex tl=index(row,col), br=index(col,row);
+    // emit dataChanged(tl, tl, {Qt::BackgroundRole});
+    // emit dataChanged(br, br, {Qt::BackgroundRole});
 }
 
 void AdjacencyMatrixModel::setEdge(int row, int col, bool isEdge)

@@ -41,6 +41,11 @@ public:
     std::size_t axis2() const { return axis2_; }
     double      angle() const { return angle_; }
 
+    /* ---------- setters ---------- */
+    void setAxis1(std::size_t axis1) { axis1_ = axis1; }
+    void setAxis2(std::size_t axis2) { axis2_ = axis2; }
+    void setAngle(double angle)      { angle_ = angle; }
+
 private:
     std::size_t axis1_;
     std::size_t axis2_;

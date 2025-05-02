@@ -2,8 +2,11 @@
 
 #include "../model/projection.h"
 #include "../model/scene.h"
+#include "../model/rotator.h"
 #include "NDShapeEditorDialog.h"
+#include "dataModels/rotatorTableModel.h"
 #include "axesGroupBox.h"
+#include "delegates/rotatorDelegate.h"
 
 #include <QFormLayout>
 #include <QColorDialog>
@@ -17,6 +20,7 @@
 #include <QMessageBox>
 #include <QShortcut>
 #include <QMenu>
+#include <QScrollBar>
 
 /* ---------- helpers ---------- */
 static QString css(const QColor& c){ return QString("background:%1").arg(c.name()); }
@@ -52,16 +56,20 @@ SceneObjectEditorWidget::SceneObjectEditorWidget(QWidget *parent)
     connect(perspDist_, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this,&SceneObjectEditorWidget::projectionChanged);
 
-    rotTable_ = new QTableWidget(this);
-    rotTable_->setColumnCount(3);
-    rotTable_->setHorizontalHeaderLabels({tr("Axis i"), tr("Axis j"), tr("Angle")});
-    rotTable_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-    connect(rotTable_, &QTableWidget::cellChanged,
-            this, &SceneObjectEditorWidget::rotCellChanged);
+    rotModel_ = new RotatorTableModel(
+        [this](SceneObject upd){
+            QColor c = curColorGetter_();
+            commit(true, upd, c);
+        },
+        this);
+    rotView_ = new QTableView(this);
+    rotView_->setModel(rotModel_);
+    rotView_->setItemDelegate(new RotatorDelegate(rotView_));
+    rotView_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
     /* --- context-menu support --- */
-    rotTable_->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(rotTable_, &QWidget::customContextMenuRequested,
+    rotView_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(rotView_, &QWidget::customContextMenuRequested,
             this, &SceneObjectEditorWidget::showRotContextMenu);
 
     // --------- Create actions and shortcuts ----------
@@ -70,7 +78,7 @@ SceneObjectEditorWidget::SceneObjectEditorWidget(QWidget *parent)
         act->setShortcut(shortcut);
         act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
         connect(act, &QAction::triggered, this, slot);
-        rotTable_->addAction(act); // Registers shortcut
+        rotView_->addAction(act);
         rotatorActions_[name] = act;
     };
     makeAction("add", tr("Add"), QKeySequence::New, &SceneObjectEditorWidget::addRotator);
@@ -84,7 +92,7 @@ SceneObjectEditorWidget::SceneObjectEditorWidget(QWidget *parent)
     rotGroupBox_ = new QGroupBox(tr("Rotators"), this);
     QVBoxLayout* rotBoxLayout = new QVBoxLayout(rotGroupBox_);
     rotBoxLayout->setContentsMargins(5,5,5,5);
-    rotBoxLayout->addWidget(rotTable_);
+    rotBoxLayout->addWidget(rotView_);
 
     scaleBox_  = new AxesGroupBox(tr("Scale"),  {1,1,1}, this);
     scaleBox_->setRange(0.01, 15);
@@ -120,6 +128,7 @@ void SceneObjectEditorWidget::setObject(std::shared_ptr<SceneObject>        obj,
 {
     cur_                  = obj;
     curColorGetter_       = colorGetter;
+    rotModel_->setSceneObject(obj);
 
     rebuildUiFromCurrent();
     setEnabled(bool(cur_));
@@ -127,6 +136,9 @@ void SceneObjectEditorWidget::setObject(std::shared_ptr<SceneObject>        obj,
 
 void SceneObjectEditorWidget::clear()
 {
+    std::weak_ptr<SceneObject> empty;
+    rotModel_->setSceneObject(empty);
+    rotModel_->reload();
     cur_.reset();
     setEnabled(false);
 }
@@ -168,18 +180,9 @@ void SceneObjectEditorWidget::rebuildUiFromCurrent()
     perspDist_->blockSignals(false);
     projCombo_->blockSignals(false);
 
-    /* rotators */
-    rotTable_->blockSignals(true);
-    rotTable_->clearContents();
-    rotTable_->setRowCount(static_cast<int>(cur_->rotators.size()));
-    for (int r = 0; r < rotTable_->rowCount(); ++r)
-    {
-        const Rotator& rot = cur_->rotators[r];
-        rotTable_->setItem(r, 0, new QTableWidgetItem(QString::number(rot.axis1())));
-        rotTable_->setItem(r, 1, new QTableWidgetItem(QString::number(rot.axis2())));
-        rotTable_->setItem(r, 2, new QTableWidgetItem(QString::number(rot.angle())));
-    }
-    rotTable_->blockSignals(false);
+    int scrollV = rotView_->verticalScrollBar()->value();
+    rotModel_->reload();
+    rotView_->verticalScrollBar()->setValue(std::min(scrollV, rotView_->verticalScrollBar()->maximum()));
 
     scaleBox_->blockSignals(true);
     scaleBox_->setValue(cur_->scale);
@@ -206,15 +209,6 @@ void SceneObjectEditorWidget::commit(bool geometryChanged,
     case 3: obj.projection = std::make_shared<StereographicProjection>(); break;
     }
 
-    /* rotators from table */
-    obj.rotators.clear();
-    for(int r=0;r<rotTable_->rowCount();++r){
-        obj.rotators.emplace_back(
-            rotTable_->item(r,0)->text().toUInt(),
-            rotTable_->item(r,1)->text().toUInt(),
-            rotTable_->item(r,2)->text().toDouble());
-    }
-
     obj.scale  = scaleBox_->value();
     obj.offset = offsetBox_->value();
 
@@ -237,7 +231,7 @@ void SceneObjectEditorWidget::chooseColor()
     colorBtn_->setStyleSheet(css(c));
 
     SceneObject upd = cur_->clone();
-    commit(true, upd, c);                       ///< colour change → repaint
+    commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::projectionChanged()
@@ -271,34 +265,6 @@ void SceneObjectEditorWidget::nameEditingFinished()
     SceneObject upd = cur_->clone();
     QColor c = curColorGetter_();
     commit(false, upd, c);                     ///< no renderer update needed
-}
-
-void SceneObjectEditorWidget::rotCellChanged(int row, int col)
-{
-    if (row < 0 || row >= (int)cur_->rotators.size())
-        return;
-
-    const Rotator &oldR = cur_->rotators[row];
-    const QTableWidgetItem *it = rotTable_->item(row, col);
-    if (!it) return;
-    bool changed = false;
-    switch (col) {
-        case 0:
-            changed = (it->text().toUInt() != oldR.axis1());
-            break;
-        case 1:
-            changed = (it->text().toUInt() != oldR.axis2());
-            break;
-        case 2:
-            changed = (it->text().toDouble() != oldR.angle());
-            break;
-    }
-    if (!changed)
-        return;
-
-    SceneObject upd = cur_->clone();
-    QColor c = curColorGetter_();
-    commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::scaleChanged()
@@ -335,28 +301,20 @@ void SceneObjectEditorWidget::openShapeDialog()
 
 // Rotator
 void SceneObjectEditorWidget::addRotator() {
-    rotTable_->blockSignals(true);
-    int r = rotTable_->rowCount();
-    rotTable_->insertRow(r);
-    rotTable_->setItem(r, 0, new QTableWidgetItem("0"));
-    rotTable_->setItem(r, 1, new QTableWidgetItem("1"));
-    rotTable_->setItem(r, 2, new QTableWidgetItem("0.0"));
-    rotTable_->blockSignals(false);
-    rotTable_->setCurrentCell(r, 0);
     // commit changes
-    SceneObject upd = cur_->clone(); QColor c = curColorGetter_();
+    SceneObject upd = cur_->clone();
+    upd.rotators.emplace_back(Rotator(0, 1, 0.0));
+    QColor c = curColorGetter_();
     commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::copyRotator() {
     rotClipboard_.clear();
-    auto sel = rotTable_->selectionModel()->selectedRows();
+    auto sel = rotView_->selectionModel()->selectedRows();
     for (const QModelIndex &idx : sel) {
         int row = idx.row();
-        auto a = rotTable_->item(row, 0)->text().toUInt();
-        auto b = rotTable_->item(row, 1)->text().toUInt();
-        auto ang = rotTable_->item(row, 2)->text().toDouble();
-        rotClipboard_.append(Rotator(a,b,ang));
+        const Rotator &r = cur_->rotators[idx.row()];
+        rotClipboard_.append(r);
     }
 }
 
@@ -366,87 +324,48 @@ void SceneObjectEditorWidget::cutRotator() {
 }
 
 void SceneObjectEditorWidget::pasteRotator() {
-    if (rotClipboard_.isEmpty())
-        return;
+    if (!cur_ || rotClipboard_.isEmpty()) return;
 
-    rotTable_->blockSignals(true);
-    int r = rotTable_->rowCount();
-    for (const Rotator &rot : rotClipboard_) {
-        rotTable_->insertRow(r);
-        rotTable_->setItem(r, 0, new QTableWidgetItem(QString::number(rot.axis1())));
-        rotTable_->setItem(r, 1, new QTableWidgetItem(QString::number(rot.axis2())));
-        rotTable_->setItem(r, 2, new QTableWidgetItem(QString::number(rot.angle())));
-        r++;
-    }
-    rotTable_->blockSignals(false);
-    if (!rotClipboard_.isEmpty()) rotTable_->setCurrentCell(rotTable_->rowCount()-1, 0);
-    SceneObject upd = cur_->clone(); QColor c = curColorGetter_();
+    SceneObject upd = cur_->clone();
+    upd.rotators.insert(upd.rotators.end(),
+                          rotClipboard_.cbegin(),
+                          rotClipboard_.cend());
+    QColor c = curColorGetter_();
     commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::deleteRotator() {
-    rotTable_->blockSignals(true);
-    auto sel = rotTable_->selectionModel()->selectedRows();
-    // remove from bottom to top
+    if (!cur_) return;
     QList<int> rows;
-    for (const QModelIndex &idx : sel) rows.append(idx.row());
-    if (rows.isEmpty()) {
-        rotTable_->blockSignals(false);
-        return;
-    }
+    for (const QModelIndex &idx : rotView_->selectionModel()->selectedRows())
+        rows << idx.row();
+
+    if (rows.isEmpty()) return;
+
     std::sort(rows.begin(), rows.end(), std::greater<int>());
-    for (int row : rows) rotTable_->removeRow(row);
-
     SceneObject upd = cur_->clone();
-    rotTable_->blockSignals(false);
-
+    for (int r : rows)
+        upd.rotators.erase(upd.rotators.begin() + r);
     QColor c = curColorGetter_();
     commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::moveRotatorUp() {
-    int row = rotTable_->currentRow();
-    if (row <= 0)
-        return;
+    int row = rotView_->currentIndex().row();
+    if (!cur_ || row <= 0) return;
 
-    rotTable_->blockSignals(true);
-    for (int col = 0; col < rotTable_->columnCount(); ++col) {
-        auto *itemA = rotTable_->item(row,   col);
-        auto *itemB = rotTable_->item(row-1, col);
-
-        // 3-step swap of the text
-        QString tmp = itemA->text();
-        itemA->setText(itemB->text());
-        itemB->setText(tmp);
-    }
-    rotTable_->blockSignals(false);
-    rotTable_->setCurrentCell(row-1, rotTable_->currentColumn());
-
-    // commit the change
     SceneObject upd = cur_->clone();
+    std::swap(upd.rotators[row], upd.rotators[row - 1]);
     QColor c = curColorGetter_();
     commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::moveRotatorDown() {
-    int row = rotTable_->currentRow();
-    if (row < 0 || row >= rotTable_->rowCount() - 1)
-        return;
-
-    rotTable_->blockSignals(true);
-    for (int col = 0; col < rotTable_->columnCount(); ++col) {
-        auto *itemA = rotTable_->item(row,   col);
-        auto *itemB = rotTable_->item(row+1, col);
-
-        // 3-step swap of the text
-        QString tmp = itemA->text();
-        itemA->setText(itemB->text());
-        itemB->setText(tmp);
-    }
-    rotTable_->blockSignals(false);
-    rotTable_->setCurrentCell(row+1, rotTable_->currentColumn());
+    int row = rotView_->currentIndex().row();
+    if (!cur_ || row < 0 || row >= int(cur_->rotators.size()) - 1) return;
 
     SceneObject upd = cur_->clone();
+    std::swap(upd.rotators[row], upd.rotators[row + 1]);
     QColor c = curColorGetter_();
     commit(true, upd, c);
 }
@@ -466,5 +385,5 @@ void SceneObjectEditorWidget::showRotContextMenu(const QPoint &pos)
     menu.addAction(rotatorActions_["up"]);
     menu.addAction(rotatorActions_["down"]);
 
-    menu.exec(rotTable_->viewport()->mapToGlobal(pos));
+    menu.exec(rotView_->viewport()->mapToGlobal(pos));
 }

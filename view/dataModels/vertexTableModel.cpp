@@ -71,7 +71,7 @@ bool VertexTableModel::setData(const QModelIndex& idx,
                                  tr("Edit vertex"),
                                  [this]{ structuralReload_(); }));
 
-    emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});
+    // emit dataChanged(idx, idx, {Qt::DisplayRole, Qt::EditRole});
     return true;
 }
 

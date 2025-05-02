@@ -96,7 +96,7 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
         QAction* act = new QAction(text, this);
         act->setShortcut(shortcut);
         act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
-        connect(act, &QAction::triggered, this, slot);\
+        connect(act, &QAction::triggered, this, slot);
         target->addAction(act); // Registers shortcut
         actions_[name] = act;
     };

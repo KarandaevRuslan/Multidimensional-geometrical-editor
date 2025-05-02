@@ -1,11 +1,13 @@
 #ifndef ADJACENCY_MATRIX_VIEW_H
 #define ADJACENCY_MATRIX_VIEW_H
 
+#include "wheelShiftTableView.h"
+
 #include <QTableView>
 #include <QResizeEvent>
 
 
-class AdjacencyMatrixView : public QTableView {
+class AdjacencyMatrixView : public WheelShiftTableView {
     Q_OBJECT
 public:
     explicit AdjacencyMatrixView(QWidget* parent = nullptr);

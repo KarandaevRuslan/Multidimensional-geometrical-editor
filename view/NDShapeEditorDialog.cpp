@@ -81,7 +81,7 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
 
     vertModel_ = new VertexTableModel(shape_, undo_, rowToId_,
                                       [this](){ structuralReload(); }, this);
-    vertView_  = new QTableView(vertPage);
+    vertView_  = new WheelShiftTableView(vertPage);
     vertView_->setModel(vertModel_);
     vertView_->setSelectionBehavior(QAbstractItemView::SelectRows);
     vertView_->setSelectionMode(QAbstractItemView::ExtendedSelection);
@@ -154,9 +154,11 @@ NDShapeEditorDialog::NDShapeEditorDialog(const NDShape& startShape,
 
 void NDShapeEditorDialog::structuralReload()
 {
-    int scroll = vertView_->verticalScrollBar()->value();
+    int scrollV = vertView_->verticalScrollBar()->value();
+    int scrollH = vertView_->horizontalScrollBar()->value();
     vertModel_->reload();
-    vertView_->verticalScrollBar()->setValue(std::min(scroll, vertView_->verticalScrollBar()->maximum()));
+    vertView_->verticalScrollBar()->setValue(std::min(scrollV, vertView_->verticalScrollBar()->maximum()));
+    vertView_->horizontalScrollBar()->setValue(std::min(scrollH, vertView_->horizontalScrollBar()->maximum()));
     adjModel_->reload();
     dimSpin_->blockSignals(true);
     dimSpin_->setValue(static_cast<int>(shape_->getDimension()));

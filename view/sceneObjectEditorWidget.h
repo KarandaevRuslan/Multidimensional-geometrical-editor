@@ -9,11 +9,12 @@
 #include "../model/sceneColorificator.h"
 
 #include "axesGroupBox.h"
+#include "dataModels/rotatorTableModel.h"
 
 class QLabel;
 class QLineEdit;
 class QPushButton;
-class QTableWidget;
+class QTableView;
 class QDoubleSpinBox;
 class QComboBox;
 
@@ -62,7 +63,6 @@ private slots:
     void chooseColor();
     void projectionChanged();
     void nameEditingFinished();
-    void rotCellChanged(int,int);
     void scaleChanged();
     void offsetChanged();
     void openShapeDialog();
@@ -86,31 +86,31 @@ private:
     std::function<QColor()>      curColorGetter_;
 
     /* ui widgets */
-    QLabel*         idLabel_;
-    QLineEdit*      nameEdit_;
-    QPushButton*    colorBtn_;
-    QComboBox*      projCombo_;
-    QDoubleSpinBox* perspDist_;
-    QPushButton*    shapeBtn_;
-    AxesGroupBox*   scaleBox_;
-    AxesGroupBox*   offsetBox_;
+    QLabel*         idLabel_{};
+    QLineEdit*      nameEdit_{};
+    QPushButton*    colorBtn_{};
+    QComboBox*      projCombo_{};
+    QDoubleSpinBox* perspDist_{};
+    QPushButton*    shapeBtn_{};
+    AxesGroupBox*   scaleBox_{};
+    AxesGroupBox*   offsetBox_{};
+    QTableView*  rotView_{};
+    QPushButton* addRotBtn_{};
+    QPushButton* copyRotBtn_{};
+    QPushButton* cutRotBtn_{};
+    QPushButton* pasteRotBtn_{};
+    QPushButton* deleteRotBtn_{};
+    QPushButton* upRotBtn_{};
+    QPushButton* downRotBtn_{};
+    QLabel *distanceLabel_{};
+    QGroupBox *rotGroupBox_{};
+    QLabel *uidLabel_{};
+    QLabel *uidTextLabel_{};
 
-    QTableWidget*   rotTable_;
-    QPushButton* addRotBtn_;
-    QPushButton* copyRotBtn_;
-    QPushButton* cutRotBtn_;
-    QPushButton* pasteRotBtn_;
-    QPushButton* deleteRotBtn_;
-    QPushButton* upRotBtn_;
-    QPushButton* downRotBtn_;
-    // internal clipboard for cut/copy
-    QList<Rotator> rotClipboard_;
-    QLabel *distanceLabel_;
+    RotatorTableModel *rotModel_{};
 
     QMap<QString, QAction*> rotatorActions_;
-    QGroupBox *rotGroupBox_;
-    QLabel *uidLabel_;
-    QLabel *uidTextLabel_;
+    QList<Rotator> rotClipboard_;
 };
 
 #endif // SCENE_OBJECT_EDITOR_WIDGET_H

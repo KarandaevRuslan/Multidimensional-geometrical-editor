@@ -58,6 +58,8 @@ set(PROJECT_SOURCES
     view/delegates/noHoverDelegate.h view/delegates/noHoverDelegate.cpp
     view/adjacencyMatrixView.h view/adjacencyMatrixView.cpp
     view/dataModels/rotatorTableModel.h view/dataModels/rotatorTableModel.cpp
+    view/wheelShiftTableView.h view/wheelShiftTableView.cpp
+    view/delegates/rotatorDelegate.h view/delegates/rotatorDelegate.cpp
     ${RESOURCES}
     ${UI_FILES}
 )
