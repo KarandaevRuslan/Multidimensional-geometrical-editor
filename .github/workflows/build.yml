@@ -33,7 +33,7 @@ jobs:
             cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=x86_64"
             build_dir: build
             artifact_name: NDEditor-macos-x86_64
-            dist_path: build/rel/NDEditor.app
+            dist_path: build/rel/NDEditor.app.tar.gz
 
     steps:
       - uses: actions/checkout@v4
@@ -136,6 +136,7 @@ jobs:
         run: |
           # macdeployqt из qttools в PATH
           macdeployqt "${{ matrix.build_dir }}/rel/NDEditor.app" -verbose=1
+          tar -czf ${{ matrix.build_dir }}/rel/NDEditor.app.tar.gz -C ${{ matrix.build_dir }}/rel NDEditor.app
 
       - name: Deploy Qt libraries and create AppImage (Linux)
         if: runner.os == 'Linux'
