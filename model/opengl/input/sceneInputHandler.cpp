@@ -43,10 +43,19 @@ void SceneInputHandler::setFreeLookEnabled(bool enabled)
 void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*camera*/)
 {
     // Shift+F toggles free-look
-    if ((event->modifiers() & Qt::ShiftModifier) && event->key() == Qt::Key_F) {
+#ifdef Q_OS_WIN
+    quint32 vk = event->nativeVirtualKey();
+    if ((event->modifiers() & Qt::ShiftModifier) && vk == 0x46) { // VK = 'F'
         setFreeLookEnabled(!freeLookMode_);
         return;
     }
+#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+    quint32 sc = event->nativeScanCode();
+    if ((event->modifiers() & Qt::ShiftModifier) && sc == 33) {     // ScanCode F = 33
+        setFreeLookEnabled(!freeLookMode_);
+        return;
+    }
+#endif
 
     switch (event->key()){
         case Qt::Key_Left:    turnLeftPressed_  = true; break;
@@ -59,35 +68,52 @@ void SceneInputHandler::keyPressEvent(QKeyEvent* event, CameraController& /*came
         return;
     }
 
-    switch (event->key()) {
-        case Qt::Key_W:       forwardPressed_  = true; break;
-        case Qt::Key_S:       backwardPressed_ = true; break;
-        case Qt::Key_A:       leftPressed_     = true; break;
-        case Qt::Key_D:       rightPressed_    = true; break;
-        case Qt::Key_Space:   upPressed_       = true; break;
-        case Qt::Key_Control: downPressed_     = true; break;
-        case Qt::Key_Shift:   shiftPressed_    = true; break;
-        default:
-            break;
-    }
+// W/A/S/D by hardware
+#ifdef Q_OS_WIN
+    if      (vk == 0x57)      forwardPressed_  = true; // 'W'
+    else if (vk == 0x53)      backwardPressed_ = true; // 'S'
+    else if (vk == 0x41)      leftPressed_     = true; // 'A'
+    else if (vk == 0x44)      rightPressed_    = true; // 'D'
+#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+    if      (sc == 17)        forwardPressed_  = true; // ScanCode W
+    else if (sc == 31)        backwardPressed_ = true; // ScanCode S
+    else if (sc == 30)        leftPressed_     = true; // ScanCode A
+    else if (sc == 32)        rightPressed_    = true; // ScanCode D
+#endif
+
+    // Remaining keys
+    if (event->key() == Qt::Key_Space)   upPressed_   = true;
+    if (event->key() == Qt::Key_Control) downPressed_ = true;
+    if (event->key() == Qt::Key_Shift)   shiftPressed_= true;
 }
 
 void SceneInputHandler::keyReleaseEvent(QKeyEvent* event, CameraController& /*camera*/)
 {
+    // W/A/S/D releasing
+#ifdef Q_OS_WIN
+    quint32 vk = event->nativeVirtualKey();
+    if      (vk == 0x57)      forwardPressed_  = false;
+    else if (vk == 0x53)      backwardPressed_ = false;
+    else if (vk == 0x41)      leftPressed_     = false;
+    else if (vk == 0x44)      rightPressed_    = false;
+#elif defined(Q_OS_LINUX) || defined(Q_OS_MAC)
+    quint32 sc = event->nativeScanCode();
+    if      (sc == 17)        forwardPressed_  = false;
+    else if (sc == 31)        backwardPressed_ = false;
+    else if (sc == 30)        leftPressed_     = false;
+    else if (sc == 32)        rightPressed_    = false;
+#endif
+
+    // Arrow buttons and other
     switch (event->key()) {
-        case Qt::Key_W:       forwardPressed_  = false; break;
-        case Qt::Key_S:       backwardPressed_ = false; break;
-        case Qt::Key_A:       leftPressed_     = false; break;
-        case Qt::Key_D:       rightPressed_    = false; break;
-        case Qt::Key_Space:   upPressed_       = false; break;
-        case Qt::Key_Control: downPressed_     = false; break;
-        case Qt::Key_Shift:   shiftPressed_    = false; break;
-        case Qt::Key_Left:    turnLeftPressed_  = false; break;
-        case Qt::Key_Right:   turnRightPressed_ = false; break;
-        case Qt::Key_Up:      turnUpPressed_    = false; break;
-        case Qt::Key_Down:    turnDownPressed_  = false; break;
-        default:
-            break;
+    case Qt::Key_Space:   upPressed_       = false; break;
+    case Qt::Key_Control: downPressed_     = false; break;
+    case Qt::Key_Shift:   shiftPressed_    = false; break;
+    case Qt::Key_Left:    turnLeftPressed_ = false; break;
+    case Qt::Key_Right:   turnRightPressed_= false; break;
+    case Qt::Key_Up:      turnUpPressed_   = false; break;
+    case Qt::Key_Down:    turnDownPressed_ = false; break;
+    default: break;
     }
 }
 

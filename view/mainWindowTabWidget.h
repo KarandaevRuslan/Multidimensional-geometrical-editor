@@ -2,6 +2,7 @@
 #define MAIN_WINDOW_TAB_WIDGET_H
 
 #include "sceneObjectEditorWidget.h"
+#include "sceneObjectListView.h"
 #include "sceneRendererWidget.h"
 #include "../presenterMain.h"
 #include <QWidget>
@@ -45,7 +46,7 @@ private slots:
     void importObject();
 private:
     SceneRendererWidget* sceneRenderer_;
-    QListView* listView_;
+    SceneObjectListView* listView_;
     SceneObjectEditorWidget*  editor_;
     std::unique_ptr<QUndoStack> undoStack_;
 

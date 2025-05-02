@@ -2,6 +2,7 @@
 #include "commands/changeSceneObjectCommand.h"
 #include "addSceneObjectDialog.h"
 #include "sceneObjectEditorWidget.h"
+#include "sceneObjectListView.h"
 #include "commands/addSceneObjectCommand.h"
 #include "commands/removeSceneObjectCommand.h"
 #include <QSplitter>
@@ -26,7 +27,7 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     QVBoxLayout* leftLayout = new QVBoxLayout(leftWidget);
 
     // Construct the list view and undo stack.
-    listView_ = new QListView(leftWidget);
+    listView_ = new SceneObjectListView(leftWidget);
     undoStack_ = std::make_unique<QUndoStack>(this);
     undoStack_->setUndoLimit(2500);
 
@@ -127,12 +128,19 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
                },
                listView_);
     makeAction("exportObj", tr("Export Object"),
-               QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_S),
-               &MainWindowTabWidget::exportSelectedObject, listView_);
+               QKeySequence("Ctrl+Shift+S"),
+               &MainWindowTabWidget::exportSelectedObject,
+               listView_);
 
     makeAction("importObj", tr("Import Object"),
-               QKeySequence(Qt::CTRL | Qt::SHIFT | Qt::Key_L),
-               &MainWindowTabWidget::importObject, listView_);
+               QKeySequence("Ctrl+Shift+L"),
+               &MainWindowTabWidget::importObject,
+               listView_);
+
+    connect(listView_, &SceneObjectListView::exportRequested,
+            this,       &MainWindowTabWidget::exportSelectedObject);
+    connect(listView_, &SceneObjectListView::importRequested,
+            this,       &MainWindowTabWidget::importObject);
 
 
     // Model is created but will be assigned scene/colorificator later:

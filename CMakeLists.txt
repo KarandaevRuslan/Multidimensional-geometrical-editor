@@ -60,6 +60,7 @@ set(PROJECT_SOURCES
     view/dataModels/rotatorTableModel.h view/dataModels/rotatorTableModel.cpp
     view/wheelShiftTableView.h view/wheelShiftTableView.cpp
     view/delegates/rotatorDelegate.h view/delegates/rotatorDelegate.cpp
+    view/sceneObjectListView.h view/sceneObjectListView.cpp
     ${RESOURCES}
     ${UI_FILES}
 )
