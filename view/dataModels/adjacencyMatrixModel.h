@@ -5,6 +5,11 @@
 #include <memory>
 #include "../../model/NDShape.h"
 #include <QColor>
+#include <unordered_set>
+#include <functional>
+#include <utility>
+#include <cstddef>
+#include <memory>
 
 class QUndoStack;
 
@@ -33,9 +38,17 @@ public:
 
 private:
     struct PairHash {
-        size_t operator()(const std::pair<std::size_t,std::size_t>& p) const noexcept
-        {
-            return std::hash<std::size_t>()((p.first<<32) ^ p.second);
+        size_t operator()(const std::pair<std::size_t,std::size_t>& p) const noexcept {
+            std::size_t seed = 0;
+            seed ^= std::hash<std::size_t>{}(p.first)
+                    + 0x9e3779b97f4a7c15ULL
+                    + (seed << 6)
+                    + (seed >> 2);
+            seed ^= std::hash<std::size_t>{}(p.second)
+                    + 0x9e3779b97f4a7c15ULL
+                    + (seed << 6)
+                    + (seed >> 2);
+            return seed;
         }
     };
 
