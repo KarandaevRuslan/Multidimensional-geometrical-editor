@@ -134,7 +134,7 @@ jobs:
           # macdeployqt из qttools в PATH
           macdeployqt "${{ matrix.build_dir }}/rel/NDEditor.app" -verbose=1
 
-     - name: Deploy Qt libraries and create AppImage (Linux)
+       - name: Deploy Qt libraries and create AppImage (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
