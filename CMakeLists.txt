@@ -11,9 +11,29 @@ find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools UiTools 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools UiTools OpenGL OpenGLWidgets)
 
 set(TS_FILES
-    NDEditor_en_US.ts
-    NDEditor_ru_RU.ts
+#    NDEditor_en_US.ts
+#    NDEditor_ru_RU.ts
 )
+
+# Generate .qm files using lrelease
+find_program(LRELEASE_EXECUTABLE lrelease)
+if (LRELEASE_EXECUTABLE)
+    message(STATUS "Found lrelease: ${LRELEASE_EXECUTABLE}")
+    set(QM_FILES)
+    foreach(TS_FILE IN LISTS TS_FILES)
+        get_filename_component(TS_NAME ${TS_FILE} NAME_WE)
+        set(QM_OUT "${CMAKE_CURRENT_BINARY_DIR}/${TS_NAME}.qm")
+        add_custom_command(
+            OUTPUT ${QM_OUT}
+            COMMAND ${LRELEASE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/${TS_FILE} -qm ${QM_OUT}
+            DEPENDS ${CMAKE_SOURCE_DIR}/${TS_FILE}
+            COMMENT "Compiling translation: ${TS_FILE} -> ${QM_OUT}"
+        )
+        list(APPEND QM_FILES ${QM_OUT})
+    endforeach()
+else()
+    message(WARNING "lrelease not found, translation files will not be built")
+endif()
 
 set(RESOURCES
     resources.qrc
@@ -63,11 +83,8 @@ set(PROJECT_SOURCES
     view/sceneObjectListView.h view/sceneObjectListView.cpp
     ${RESOURCES}
     ${UI_FILES}
+    ${QM_FILES}
 )
-
-# qt_add_translations(NDEditor
-#     TS_FILES ${TS_FILES}
-# )
 
 if (WIN32)
   set(APP_ICON_RC "${CMAKE_SOURCE_DIR}/resources.rc")
@@ -87,11 +104,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${PROJECT_SOURCES}
         ${APP_ICON_RC}
     )
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-
-    set_target_properties(NDEditor PROPERTIES
-      MACOSX_BUNDLE_ICON_FILE ${MACOSX_ICON_FILE}
-    )
 else()
     if(ANDROID)
         add_library(NDEditor SHARED
@@ -106,10 +118,6 @@ else()
             WIN32
         )
     endif()
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-    set_target_properties(NDEditor PROPERTIES
-      MACOSX_BUNDLE_ICON_FILE ${MACOSX_ICON_FILE}
-    )
 endif()
 
 target_link_libraries(NDEditor PRIVATE
@@ -125,6 +133,7 @@ endif()
 
 set_target_properties(NDEditor PROPERTIES
     ${BUNDLE_ID_OPTION}
+    MACOSX_BUNDLE_ICON_FILE ${MACOSX_ICON_FILE}
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
