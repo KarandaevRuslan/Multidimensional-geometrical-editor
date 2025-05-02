@@ -27,8 +27,8 @@ QVariant RotatorTableModel::data(const QModelIndex &index, int role) const
     const Rotator &r = rotators()->at(index.row());
     if (role == Qt::DisplayRole || role == Qt::EditRole) {
         switch (index.column()) {
-        case 0: return r.axis1();
-        case 1: return r.axis2();
+        case 0: return static_cast<qulonglong>(r.axis1());
+        case 1: return static_cast<qulonglong>(r.axis2());
         case 2: return r.angle();
         }
     }
