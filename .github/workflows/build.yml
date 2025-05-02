@@ -119,7 +119,7 @@ jobs:
             cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
           fi
           
-      # 3) Deploy Qt-библиотек
+      # 3) Deploy Qt libraries
       - name: Deploy Qt libraries (Windows)
         if: runner.os == 'Windows'
         shell: bash
@@ -139,20 +139,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          set -x
           export QT6_INSTALL_DIR=/usr/lib/qt6
 
+          # 1) Install prerequisites
           sudo apt-get update
-          sudo apt-get install -y libfuse2 qt6-base-dev qt6-tools-dev-tools wget libglib2.0-bin
- LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
+          sudo apt-get install -y \
+            libfuse2 \
+            qt6-base-dev qt6-tools-dev-tools \
+            wget libglib2.0-bin
+
+          # 2) Download linuxdeployqt
+          LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
           wget -qO "$LINUXDEPLOYQT" \
             https://github.com/linuxdeploy/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT
           chmod a+x "$LINUXDEPLOYQT"
 
+          # 3) (Optional) Download appimagetool if your linuxdeployqt build doesn’t bundle it
           APPIMAGETOOL=appimagetool-x86_64.AppImage
           wget -qO "$APPIMAGETOOL" \
             https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL
           chmod a+x "$APPIMAGETOOL"
 
+          # 4) Prepare AppDir layout
           BUILD_REL=build/rel
           APPDIR=$BUILD_REL/AppDir
           rm -rf "$APPDIR"
@@ -161,14 +170,20 @@ jobs:
             "$APPDIR/usr/share/applications" \
             "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-          cp "$BUILD_REL/NDEditor"           "$APPDIR/usr/bin/"
-          cp "$BUILD_REL/NDEditor.desktop"   "$APPDIR/usr/share/applications/"
-          cp "$BUILD_REL/ndeditor.png"       "$APPDIR/usr/share/icons/hicolor/256x256/apps/NDEditor.png"
+          # 5) Copy your binary, .desktop and icon into AppDir
+          cp "$BUILD_REL/NDEditor" \
+             "$APPDIR/usr/bin/"
+          cp "$BUILD_REL/NDEditor.desktop" \
+             "$APPDIR/usr/share/applications/"
+          cp "$BUILD_REL/ndeditor.png" \
+             "$APPDIR/usr/share/icons/hicolor/256x256/apps/NDEditor.png"
 
+          # 6) Bundle Qt libs & plugins, and produce the .AppImage
           ./"$LINUXDEPLOYQT" \
             "$APPDIR/usr/share/applications/NDEditor.desktop" \
             -appimage
 
+          # 7) Move the resulting AppImage into your rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
             
       # 4) Upload from build/rel
