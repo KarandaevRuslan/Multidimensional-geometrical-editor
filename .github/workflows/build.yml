@@ -58,6 +58,18 @@ jobs:
           arch:   ${{ matrix.arch }}
           archives: "qtbase qttools"
           cache:  true
+          
+      - name: Install Qt (with Style Plugin)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.6.3
+          target: desktop
+          arch: win64_msvc2022_64
+          use-official: true
+          email: ${{ secrets.QT_EMAIL }}
+          pw:    ${{ secrets.QT_PW }}
+          modules: 'qtcharts qtwebengine qtstyleplugins'
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
@@ -127,24 +139,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          # windeployqt уже в PATH благодаря install-qt-action
           windeployqt "${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
-      
-      - name: Copy modern Windows style plugin from repository
-        if: runner.os == 'Windows'
-        shell: powershell
-        run: |
-          $pluginPath = "${{ github.workspace }}\resources\qt_plugins\qmodernwindowsstyle.dll"
-          $destination = "${{ matrix.build_dir }}\rel\Release\plugins\styles"
-          New-Item -ItemType Directory -Path $destination -Force | Out-Null
-          Copy-Item $pluginPath -Destination $destination -Force
-          Write-Host "Copied qmodernwindowsstyle.dll to $destination"
 
       - name: Deploy Qt libraries (macOS)
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          # macdeployqt из qttools в PATH
           macdeployqt "${{ matrix.build_dir }}/rel/NDEditor.app" -verbose=1
           tar -czf ${{ matrix.build_dir }}/rel/NDEditor.app.tar.gz -C ${{ matrix.build_dir }}/rel NDEditor.app
 

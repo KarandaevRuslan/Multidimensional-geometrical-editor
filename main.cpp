@@ -44,7 +44,6 @@ QString chooseWindowsStyle(const QStringList &availableStyles)
 #endif
 
 #if defined(Q_OS_WIN)
-
     auto winVer = QOperatingSystemVersion::current();
 
     if (isQt6
@@ -54,12 +53,15 @@ QString chooseWindowsStyle(const QStringList &availableStyles)
         return "windows11";
     }
     if (winVer >= QOperatingSystemVersion::Windows10
-        && availableStyles.contains("Windows", Qt::CaseInsensitive))
+        && availableStyles.contains("Fusion", Qt::CaseInsensitive))
     {
-        return "Windows";
+        return "Fusion";
     }
-    if (availableStyles.contains("windowsvista", Qt::CaseInsensitive))
+    if (winVer >= QOperatingSystemVersion::Windows7
+        && availableStyles.contains("windowsvista", Qt::CaseInsensitive))
+    {
         return "windowsvista";
+    }
     if (availableStyles.contains("Windows", Qt::CaseInsensitive))
         return "Windows";
 #endif
