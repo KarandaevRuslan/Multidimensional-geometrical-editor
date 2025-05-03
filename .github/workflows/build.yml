@@ -57,7 +57,7 @@ jobs:
           host: ${{ matrix.host }}
           target: desktop
           arch: ${{ matrix.arch }}
-          modules: qtbase,qttools,qtcharts,qtwebengine
+          archives: qtbase,qttools,qtcharts,qtwebengine
           cache: true
 
       # === Windows ===
