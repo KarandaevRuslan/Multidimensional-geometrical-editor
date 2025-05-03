@@ -48,19 +48,29 @@ jobs:
             libglu1-mesa-dev libgl1-mesa-dev libopengl-dev qtbase5-dev-tools \
             libfuse2 ninja-build libgtest-dev
           
-      - name: Install Qt (Windows & macOS)
-        if: runner.os != 'Linux'
+      # === macOS ===
+      - name: Install Qt (macOS)
+        if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.2
-          host:   ${{ matrix.host }}
+          host: ${{ matrix.host }}
           target: desktop
-          arch:   ${{ matrix.arch }}
-          use-official: true
-          email: ${{ secrets.QT_EMAIL }}
-          pw:    ${{ secrets.QT_PW }}
+          arch: ${{ matrix.arch }}
+          modules: qtbase,qttools,qtcharts,qtwebengine
+          cache: true
+
+      # === Windows ===
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.8.2
+          host: ${{ matrix.host }}
+          target: desktop
+          arch: ${{ matrix.arch }}
           modules: qtbase,qttools,qtcharts,qtwebengine,qtstyleplugins
-          cache:  true
+          cache: true
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
