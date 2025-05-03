@@ -44,9 +44,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            qt6-base-dev qt6-tools-dev qt6-tools-dev-tools qt6-wayland-dev \
-            libglu1-mesa-dev libgl1-mesa-dev libopengl-dev qtbase5-dev-tools \
-            libfuse2 ninja-build libgtest-dev
+            qt5-qmake qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
+            qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev \
+            libgl1-mesa-dev libopengl-dev libfuse2 ninja-build libgtest-dev
           
       # === macOS ===
       - name: Install Qt (macOS)
@@ -164,13 +164,13 @@ jobs:
             libfuse2 \
             wget patchelf desktop-file-utils
 
-          # Symlink Qt6 qmake explicitly (fixes qmake detection)
-          sudo ln -sf /usr/lib/qt6/bin/qmake /usr/bin/qmake
+          # Symlink Qt5 qmake explicitly (fixes qmake detection)
+          sudo ln -sf /usr/lib/qt5/bin/qmake /usr/bin/qmake
 
-          # Verify qmake points correctly
+          # Verify qmake points correctly (should show Qt5 version)
           qmake -v
 
-          # Download linuxdeployqt (Qt6-compatible continuous build)
+          # Download linuxdeployqt (Qt5-compatible continuous build)
           LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
           wget -qO "$LINUXDEPLOYQT" \
             https://github.com/probonopd/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT
@@ -199,8 +199,8 @@ jobs:
           cp images/app_icon.png \
              "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
 
-          # Bundle Qt dependencies and build AppImage
-          export PATH="/usr/lib/qt6/bin:$PATH"
+          # Bundle Qt dependencies and build AppImage (using Qt5)
+          export PATH="/usr/lib/qt5/bin:$PATH"
           ./"$LINUXDEPLOYQT" \
             "$APPDIR/usr/share/applications/NDEditor.desktop" \
             -appimage
@@ -208,6 +208,7 @@ jobs:
           # Move resulting AppImage into rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
           mv "$BUILD_REL"/NDEditor-*-x86_64.AppImage "$BUILD_REL"/NDEditor.AppImage
+
             
       # 4) Upload from build/rel
       - name: Upload artefact

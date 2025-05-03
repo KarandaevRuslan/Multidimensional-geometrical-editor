@@ -81,9 +81,10 @@ void setAppropriateStyle()
                  ? "macintosh" : "Fusion";
 #elif defined(Q_OS_LINUX)
     QString de = detectLinuxDesktopEnvironment();
-    // if (de == "KDE"     && styles.contains("Breeze"))
-    //     chosen = "Breeze";
-    if ((de == "GNOME" || de == "Cinnamon" || de == "KDE")
+    qDebug() << de;
+    if (de == "KDE" && styles.contains("Breeze"))
+        chosen = "Breeze";
+    else if ((de == "GNOME" || de == "Cinnamon")
              && styles.contains("GTK+"))
         chosen = "GTK+";
     else if (styles.contains("Fusion"))
