@@ -134,16 +134,18 @@ jobs:
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Находит qmake.exe, затем поднимается на 2 уровня вверх — это корень Qt
-          $qtDir = Split-Path (Get-Command qmake.exe).Source -Parent -Parent
-          Write-Host "Qt installation root detected at: $qtDir"
+          # Находим qmake.exe, затем поднимаемся на 2 уровня вверх — это корень Qt
+          $qmakePath = (Get-Command qmake.exe).Source
+          $qtBinDir = Split-Path $qmakePath -Parent
+          $qtRoot   = Split-Path $qtBinDir   -Parent
+          Write-Host "Qt installation root detected at: $qtRoot"
       
           # Убеждаемся, что каталог назначения существует
           $dest = "${{ matrix.build_dir }}\rel\Release\plugins\styles"
           New-Item -ItemType Directory -Path $dest -Force | Out-Null
       
           # Копируем плагин
-          Copy-Item "$qtDir\plugins\styles\qmodernwindowsstyle.dll" -Destination $dest -Force
+          Copy-Item "$qtRoot\plugins\styles\qmodernwindowsstyle.dll" -Destination $dest -Force
       
           Write-Host "Copied qmodernwindowsstyle.dll to $dest"
 
