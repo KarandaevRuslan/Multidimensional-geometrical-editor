@@ -50,7 +50,7 @@ jobs:
               qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
               qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
               libopengl-dev libfuse2 ninja-build libgtest-dev libqt5x11extras5-dev \
-              build-essential qtcreator
+              build-essential qtcreator qttools5-dev
           
       # === macOS ===
       - name: Install Qt (macOS)
