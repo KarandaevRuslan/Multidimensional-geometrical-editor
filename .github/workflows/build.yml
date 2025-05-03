@@ -53,8 +53,8 @@ jobs:
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
         with:
-          dir: ${{ github.workspace }} 
-          version: 6.8.2
+          dir: ${{ runner.workspace }} 
+          version: 6.7.3
           host: ${{ matrix.host }}
           target: desktop
           arch: ${{ matrix.arch }}
@@ -66,12 +66,12 @@ jobs:
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
-          dir: ${{ runner.workspace }} 
-          version: 6.8.2
+          dir: ${{ runner.workspace }}
+          version: 6.7.3
           host: ${{ matrix.host }}
           target: desktop
           arch: ${{ matrix.arch }}
-          archives: qtcharts qtwebengine
+          archives: "qtbase qttools qtcharts qtwebengine"
           cache: false
 
       - name: Install Ninja (macOS)
