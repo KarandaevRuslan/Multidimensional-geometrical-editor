@@ -130,24 +130,15 @@ jobs:
           # windeployqt уже в PATH благодаря install-qt-action
           windeployqt "${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
       
-      - name: Copy modern Windows style plugin
+      - name: Copy modern Windows style plugin from repository
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          # Находим qmake.exe, затем поднимаемся на 2 уровня вверх — это корень Qt
-          $qmakePath = (Get-Command qmake.exe).Source
-          $qtBinDir = Split-Path $qmakePath -Parent
-          $qtRoot   = Split-Path $qtBinDir   -Parent
-          Write-Host "Qt installation root detected at: $qtRoot"
-      
-          # Убеждаемся, что каталог назначения существует
-          $dest = "${{ matrix.build_dir }}\rel\Release\plugins\styles"
-          New-Item -ItemType Directory -Path $dest -Force | Out-Null
-      
-          # Копируем плагин
-          Copy-Item "$qtRoot\plugins\styles\qmodernwindowsstyle.dll" -Destination $dest -Force
-      
-          Write-Host "Copied qmodernwindowsstyle.dll to $dest"
+          $pluginPath = "${{ github.workspace }}\resources\qt_plugins\qmodernwindowsstyle.dll"
+          $destination = "${{ matrix.build_dir }}\rel\Release\plugins\styles"
+          New-Item -ItemType Directory -Path $destination -Force | Out-Null
+          Copy-Item $pluginPath -Destination $destination -Force
+          Write-Host "Copied qmodernwindowsstyle.dll to $destination"
 
       - name: Deploy Qt libraries (macOS)
         if: runner.os == 'macOS'

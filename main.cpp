@@ -40,6 +40,7 @@ QString chooseWindowsStyle(const QStringList &availableStyles)
 #if QT_VERSION_MAJOR >= 6
     constexpr bool isQt6 = true;
 #else
+    constexpr bool isQt6 = false;
 #endif
 
 #if defined(Q_OS_WIN)
