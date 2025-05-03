@@ -81,9 +81,9 @@ void setAppropriateStyle()
                  ? "macintosh" : "Fusion";
 #elif defined(Q_OS_LINUX)
     QString de = detectLinuxDesktopEnvironment();
-    if (de == "KDE"     && styles.contains("Breeze"))
-        chosen = "Breeze";
-    else if ((de == "GNOME" || de == "Cinnamon")
+    // if (de == "KDE"     && styles.contains("Breeze"))
+    //     chosen = "Breeze";
+    if ((de == "GNOME" || de == "Cinnamon" || de == "KDE")
              && styles.contains("GTK+"))
         chosen = "GTK+";
     else if (styles.contains("Fusion"))
@@ -106,10 +106,6 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/images/app_icon.png"));
-
-    QString currentStyle = app.style()->objectName();
-    qDebug() << "Default Qt style:" << currentStyle;
-    setAppropriateStyle();
 
     QCoreApplication::setApplicationName("NDEditor");
     QCoreApplication::setOrganizationName("Ruslan Karandaev");
@@ -139,6 +135,10 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Could not open log file.\n");
     }
     qInstallMessageHandler(customMessageHandler);
+
+    QString currentStyle = app.style()->objectName();
+    qDebug() << "Default Qt style:" << currentStyle;
+    setAppropriateStyle();
 
     {
         // Config
