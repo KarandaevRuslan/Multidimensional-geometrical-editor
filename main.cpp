@@ -42,6 +42,8 @@ QString chooseWindowsStyle(const QStringList &availableStyles)
 #else
 #endif
 
+#if defined(Q_OS_WIN)
+
     auto winVer = QOperatingSystemVersion::current();
 
     if (isQt6
@@ -59,6 +61,7 @@ QString chooseWindowsStyle(const QStringList &availableStyles)
         return "windowsvista";
     if (availableStyles.contains("Windows", Qt::CaseInsensitive))
         return "Windows";
+#endif
     return QString();
 }
 
