@@ -130,6 +130,14 @@ jobs:
           # windeployqt уже в PATH благодаря install-qt-action
           windeployqt "${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
 
+      - name: Copy modern Windows style plugin
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p "${{ matrix.build_dir }}/rel/Release/plugins/styles"
+          cp "${QT_ROOT_DIR}/plugins/styles/qmodernwindowsstyle.dll" \
+             "${{ matrix.build_dir }}/rel/Release/plugins/styles/"
+
+
       - name: Deploy Qt libraries (macOS)
         if: runner.os == 'macOS'
         shell: bash
