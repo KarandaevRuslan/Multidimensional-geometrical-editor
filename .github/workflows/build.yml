@@ -53,7 +53,7 @@ jobs:
           
           # Install Qt5 packages along with OpenGL and other dependencies
           sudo apt-get update && sudo apt-get install -y \
-              qt5-default qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
+              qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
               qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
               libopengl-dev libfuse2 ninja-build libgtest-dev libqt5x11extras5-dev \
               build-essential qtcreator
