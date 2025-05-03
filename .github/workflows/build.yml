@@ -50,7 +50,7 @@ jobs:
               qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
               qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
               libopengl-dev libfuse2 ninja-build libgtest-dev libqt5x11extras5-dev \
-              build-essential qtcreator libqt5uitools5-dev
+              build-essential qtcreator
           
       # === macOS ===
       - name: Install Qt (macOS)
@@ -90,13 +90,13 @@ jobs:
         run: |
           if [[ "$runner.os" == "Windows" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}" \
-              -G "Visual Studio 17 2022" -A x64 \
+              -G "Visual Studio 17 2019" -A x64 \
               -DCMAKE_BUILD_TYPE=Debug
           elif [[ "$runner.os" == "Linux" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}" \
               -G Ninja \
               -DCMAKE_BUILD_TYPE=Debug \
-              -DCMAKE_PREFIX_PATH=/usr/lib/x86_64-linux-gnu \
+              -DCMAKE_PREFIX_PATH=/usr/lib/qt5 \
               ${{ matrix.cmake_extra }}
           else
             cmake -S . -B "${{ matrix.build_dir }}" \
@@ -130,7 +130,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
-              -G "Visual Studio 17 2022" -A x64 \
+              -G "Visual Studio 17 2019" -A x64 \
               -DCMAKE_BUILD_TYPE=Release
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
