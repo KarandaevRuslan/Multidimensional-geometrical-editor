@@ -99,6 +99,7 @@ jobs:
               -G Ninja \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_PREFIX_PATH=/usr/lib/qt5 \
+              -DCMAKE_MODULE_PATH=/usr/lib/x86_64-linux-gnu/cmake/Qt5/ \
               ${{ matrix.cmake_extra }}
           else
             cmake -S . -B "${{ matrix.build_dir }}" \
