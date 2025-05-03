@@ -61,19 +61,26 @@ jobs:
           cache: true
 
       # === Windows ===
+      - name: List Qt archives for Windows (MSVC2022)
+        if: runner.os == 'Windows'
+        run: |
+          python -m pip install aqtinstall==3.2.*
+          python -m aqt list-archives windows desktop 6.8.2 win64_msvc2022_64
+          
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.2
-          host: ${{ matrix.host }}
+          host: windows
           target: desktop
-          arch: ${{ matrix.arch }}
-          use-official: true
-          email: ${{ secrets.QT_EMAIL }}
-          pw:    ${{ secrets.QT_PW }}
-          modules: qtcharts qtwebengine qtstyleplugins
-          cache: true
+          arch: win64_msvc2022_64
+          archives: |
+            qt.qt6.8.2.win64_msvc2022_64
+            qt.qt6.8.2.win64_msvc2022_64.qtcharts
+            qt.qt6.8.2.win64_msvc2022_64.qtwebengine
+            qt.qt6.8.2.win64_msvc2022_64.qtstyleplugins
+          cache: false
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
