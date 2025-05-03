@@ -66,10 +66,10 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.2
-          host: ${{ matrix.host }}
+          host: windows
           target: desktop
-          arch: ${{ matrix.arch }}
-          archives: "qtbase qttools qtcharts qtwebengine qtstyleplugins"
+          arch: win64_msvc2019_64
+          modules: qttools,qtcharts,qtwebengine,qtstyleplugins
           cache: true
 
       - name: Install Ninja (macOS)
