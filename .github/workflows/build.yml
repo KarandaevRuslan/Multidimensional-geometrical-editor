@@ -59,17 +59,19 @@ jobs:
           archives: "qtbase qttools"
           cache:  true
           
-      - name: Install Qt (with Style Plugin)
+      - name: Install Qt (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.6.3
+          host:   ${{ matrix.host }}
           target: desktop
-          arch: win64_msvc2022_64
+          arch:   ${{ matrix.arch }}
           use-official: true
           email: ${{ secrets.QT_EMAIL }}
           pw:    ${{ secrets.QT_PW }}
-          modules: 'qtcharts qtwebengine qtstyleplugins'
+          modules: qtbase,qttools,qtstyleplugins
+          cache:  true
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
