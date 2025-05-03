@@ -48,6 +48,8 @@ jobs:
           # Enable the 'universe' repository if it's not already enabled
           sudo add-apt-repository universe
           sudo apt-get update
+
+          apt-cache search libqt5openglwidgets5
           
           # Install Qt5 packages along with OpenGL and other dependencies
           sudo apt-get install -y \
