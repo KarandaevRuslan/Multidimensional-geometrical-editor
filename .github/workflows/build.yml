@@ -51,6 +51,8 @@ jobs:
               qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
               libopengl-dev libfuse2 ninja-build libgtest-dev libqt5x11extras5-dev \
               build-essential qtcreator qttools5-dev libqt5opengl5-dev
+
+          cmake --find-package -DNAME=Qt5OpenGLWidgets -DCOMPILER_ID=GNU -DLANGUAGE=CXX -DMODE=EXIST
           
       # === macOS ===
       - name: Install Qt (macOS)
