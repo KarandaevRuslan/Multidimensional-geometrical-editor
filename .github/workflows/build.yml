@@ -42,13 +42,28 @@ jobs:
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         run: |
+          # Update package list and install necessary dependencies
+          sudo apt-get update
+          
+          # Enable the 'universe' repository if it's not already enabled
           sudo add-apt-repository universe
           sudo apt-get update
+          
+          # Install Qt5 packages along with OpenGL and other dependencies
           sudo apt-get install -y \
             qt5-qmake qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
             qtquickcontrols2-5-dev qtwebengine5-dev \
-            libglu1-mesa-dev libgl1-mesa-dev libopengl-dev libfuse2 ninja-build libgtest-dev \
-            libqt5x11extras5-dev qttools5-dev libqt5openglwidgets5
+            libglu1-mesa-dev libgl1-mesa-dev libopengl-dev libfuse2 ninja-build \
+            libgtest-dev libqt5x11extras5-dev libqt5openglwidgets5
+
+            # Verify if the Qt5 packages are installed correctly
+            qmake -version
+            
+            # If `qmake` is not correctly pointing to Qt5, manually link it to the correct version:
+            sudo ln -sf /usr/lib/qt5/bin/qmake /usr/bin/qmake
+            
+            # Verify qmake points to the correct Qt5 version
+            qmake -v
           
       # === macOS ===
       - name: Install Qt (macOS)
