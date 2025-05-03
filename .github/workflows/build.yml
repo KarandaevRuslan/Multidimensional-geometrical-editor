@@ -53,6 +53,7 @@ jobs:
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
         with:
+          dir: ${{ github.workspace }} 
           version: 6.8.2
           host: ${{ matrix.host }}
           target: desktop
@@ -65,6 +66,7 @@ jobs:
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
         with:
+          dir: ${{ github.workspace }} 
           version: 6.8.2
           host: ${{ matrix.host }}
           target: desktop
