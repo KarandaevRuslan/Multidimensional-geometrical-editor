@@ -10,12 +10,15 @@
 #include <QProcess>
 #include <QDebug>
 #include <QMetaType>
+#include <QDir>
 
 #include "tools/configManager.h"
 #include "tools/logger.h"
 #include "view/mainWindow.h"
 #include "model/sceneColorificator.h"
+#include "model/opengl/graphics/sceneGeometryManager.h"
 #include "presenterMain.h"
+#include "view/sceneRenderer.h"
 
 QString detectLinuxDesktopEnvironment()
 {
@@ -136,9 +139,25 @@ int main(int argc, char *argv[])
     }
     QSurfaceFormat::setDefaultFormat(fmt);
 
+    QString dataDir;
+    #ifdef Q_OS_WIN
+    dataDir = QCoreApplication::applicationDirPath();
+    #else
+    dataDir = QStandardPaths::writableLocation(
+        QStandardPaths::AppDataLocation
+        );
+    #endif
+
+    if (!QDir().mkpath(dataDir)) {
+        qWarning() << "Can not create directory: " << dataDir;
+    }
+
+    const QString logPath    = QDir(dataDir).filePath("application.log");
+    const QString configPath = QDir(dataDir).filePath("config.json");
+
     // Logger
-    if (!Logger::instance().openLogFile("application.log")) {
-        fprintf(stderr, "Could not open log file.\n");
+    if (!Logger::instance().openLogFile(logPath)) {
+        qWarning() <<  "Could not open log file.";
     }
     qInstallMessageHandler(customMessageHandler);
 
@@ -146,19 +165,43 @@ int main(int argc, char *argv[])
     qDebug() << "Default Qt style:" << currentStyle;
     setAppropriateStyle();
 
+    // Config
     {
-        // Config
         ConfigManager &configManager = ConfigManager::instance();
-        if (!configManager.loadConfig("config.json")) {
+        if (!configManager.loadConfig(configPath)) {
             qWarning() << "Failed to load configuration. Using defaults.";
-            configManager.setValue("sceneObjDefaultColor", "#ffffff");
-
-
-            configManager.saveConfig("config.json");
         }
 
-        SceneColorificator::defaultColor = QColor(
-            configManager.getValue("sceneObjDefaultColor").toString());
+        auto readOrDefault = [&](const char* key, const QString& def){
+            QString v = configManager.getValue(key).toString();
+            if (v.isEmpty() || !QColor(v).isValid()) {
+                configManager.setValue(key, def);
+                return def;
+            }
+            return v;
+        };
+
+        QString sceneObjColorStr    = readOrDefault("sceneObjDefaultColor",    "#ffffff");
+        QString clearColorStr       = readOrDefault("sceneRendererClearColor", "#8f8f8f");
+        QString overlayPenColorStr  = readOrDefault("sceneOverlayNumberPenColor", "#000000");
+
+        QString tmpConfig = configPath + ".tmp";
+        if (configManager.saveConfig(tmpConfig) && QFile::rename(tmpConfig, configPath)) {
+            qDebug() << "Config saved to" << configPath;
+        } else {
+            qWarning() << "Error while saving config.";
+        }
+
+        SceneColorificator::defaultColor = QColor(sceneObjColorStr);
+        SceneRenderer::clearSceneColor = QColor(clearColorStr);
+        SceneGeometryManager::sceneOverlayNumberPen = QPen(QColor(overlayPenColorStr));
+
+        qDebug() << "defaultColor ="
+                 << SceneColorificator::defaultColor.name(QColor::HexArgb);
+        qDebug() << "clearSceneColor ="
+                 << SceneRenderer::clearSceneColor.name(QColor::HexArgb);
+        qDebug() << "overlayNumberPenColor ="
+                 << SceneGeometryManager::sceneOverlayNumberPen.color().name(QColor::HexArgb);
     }
 
     MainWindow mainWindow = MainWindow();

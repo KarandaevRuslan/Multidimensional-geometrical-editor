@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget* parent)
                 if (presenterMain_) presenterMain_->removeTab(index);
             });
     connect(tabWidget_, &QTabWidget::currentChanged,
-            this, &MainWindow::refreshEditMenu);
+            this, &MainWindow::refreshMenu);
 
     connect(ui_->actionNew, &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->createNewTab(false);});
     connect(ui_->actionExampleScene, &QAction::triggered, this, [this]{ if(presenterMain_) presenterMain_->createNewTab(true);});
@@ -94,18 +94,28 @@ void MainWindow::closeEvent(QCloseEvent* event)
     QMainWindow::closeEvent(event);
 }
 
-void MainWindow::refreshEditMenu(int idx)
+void MainWindow::refreshMenu(int idx)
 {
-    ui_->menuEdit->clear();          // wipe previous tab’s actions
+    ui_->menuEdit->clear();
+    ui_->menuView->clear();
     if (idx < 0) return;
 
     if (auto *tw = qobject_cast<MainWindowTabWidget*>(tabWidget_->widget(idx)))
     {
-        for (QAction *act : tw->editActions()) {
+        const auto editActs = tw->editActions();
+        for (QAction* act : editActs) {
             if (act)
                 ui_->menuEdit->addAction(act);
             else
                 ui_->menuEdit->addSeparator();
+        }
+
+        const auto viewActs = tw->viewActions();
+        for (QAction* act : viewActs) {
+            if (act)
+                ui_->menuView->addAction(act);
+            else
+                ui_->menuView->addSeparator();
         }
     }
 }

@@ -64,6 +64,10 @@ public:
      */
     void updateAll();
 
+    void toggleUi();
+
+    static QColor clearSceneColor;
+
 protected:
     /**
      * @brief Initializes the OpenGL state, programs, and GPU resources.
@@ -219,10 +223,6 @@ private:
     float kDefaultFarPlane_        = 1000.0f;
 
     // --- Clear color ---
-    float kClearColorR_ = 0.55f;
-    float kClearColorG_ = 0.55f;
-    float kClearColorB_ = 0.55f;
-    float kClearColorA_ = 1.0f;
     bool wheelTouched_ = false;
     bool mouseMoved_ = false;;
 };

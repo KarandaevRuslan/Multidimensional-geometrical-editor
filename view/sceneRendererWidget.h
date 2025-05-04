@@ -29,6 +29,7 @@ public:
      * @brief Update shadows and geometry
      */
     void updateAll();
+    void toggleUi();
 
     std::shared_ptr<SceneInputHandler> inputHandler() const;
     std::shared_ptr<CameraController> cameraController() const;

@@ -37,7 +37,7 @@ public:
     void updateStatusBar();
 
 private slots:
-    void refreshEditMenu(int tabIndex);
+    void refreshMenu(int tabIndex);
     void showAboutDialog();
 
 private:

@@ -16,6 +16,7 @@
 #include <QFileDialog>
 #include "../model/opengl/input/sceneInputHandler.h"
 #include <QItemSelectionModel>
+#include <QKeyEvent>
 
 MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     : QWidget(parent)
@@ -102,6 +103,9 @@ MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
         actions_[name] = act;
     };
 
+    makeAction("toggleUi",tr("Toggle scene UI"),
+               QKeySequence("Alt+H"),
+               [this](){sceneRenderer_->toggleUi();}, this);
     makeAction("undo",   tr("Undo"),    QKeySequence::Undo,    [this]{ undoStack_->undo(); }, this);
     makeAction("redo",   tr("Redo"),    QKeySequence::Redo,    [this]{ undoStack_->redo(); }, this);
     makeAction("copy",   tr("Copy"),    QKeySequence::Copy,    &MainWindowTabWidget::copySelected, listView_);
@@ -367,11 +371,14 @@ void MainWindowTabWidget::exportSelectedObject()
             return;
         }
 
-        const QString fileName =
+        QString fileName =
             QFileDialog::getSaveFileName(this, tr("Save object as"),
                                          obj->name + QStringLiteral(".json"),
                                          tr("JSON files (*.json)"));
         if (fileName.isEmpty()) return;
+        QFileInfo fi(fileName);
+        QDir dir = fi.dir();
+        fileName = dir.filePath(fi.completeBaseName() + ".json");
 
         QFile f(fileName);
         if (!f.open(QIODevice::WriteOnly)) {
@@ -502,6 +509,13 @@ QList<QAction*> MainWindowTabWidget::editActions() const
     };
 }
 
+QList<QAction*> MainWindowTabWidget::viewActions() const
+{
+    return {
+        actions_.value("toggleUi")
+    };
+}
+
 int MainWindowTabWidget::sceneObjectCount() const {
     return static_cast<int>(scene_->objectCount());
 }
@@ -512,4 +526,77 @@ CameraController* MainWindowTabWidget::cameraController() const {
 
 SceneInputHandler* MainWindowTabWidget::inputHandler() const {
     return sceneRenderer_->inputHandler().get();
+}
+
+bool MainWindowTabWidget::event(QEvent* ev)
+{
+    if (ev->type() == QEvent::ShortcutOverride) {
+        auto* ke = static_cast<QKeyEvent*>(ev);
+
+        // Only Alt, no Ctrl / Shift / Meta
+        const bool altOnly = (ke->modifiers() & Qt::AltModifier) &&
+                             !(ke->modifiers() &
+                               (Qt::ControlModifier | Qt::ShiftModifier | Qt::MetaModifier));
+
+        if (altOnly) {
+#ifdef Q_OS_WIN
+            if (ke->nativeVirtualKey() == 0x48) {          // 'H'
+                ke->accept();                              // stop default shortcut handling
+                return true;
+            }
+#elif defined(Q_OS_LINUX)
+            const bool isWayland =
+                QProcessEnvironment::systemEnvironment()
+                    .value("XDG_SESSION_TYPE")
+                    .compare("wayland", Qt::CaseInsensitive) == 0;
+
+            const quint32 sc = ke->nativeScanCode();
+            /* H = 35 (evdev) → 35+8 = 43 (X11) */
+            if ( (isWayland && sc == 35) || (!isWayland && sc == 43) ) {
+                ke->accept();
+                return true;
+            }
+#elif defined(Q_OS_MAC)
+            if (ke->nativeScanCode() == 0x04) {            // macOS ‘H’
+                ke->accept();
+                return true;
+            }
+#endif
+        }
+    }
+    return QWidget::event(ev);
+}
+
+void MainWindowTabWidget::keyPressEvent(QKeyEvent* ev)
+{
+    const bool altOnly = (ev->modifiers() & Qt::AltModifier) &&
+                         !(ev->modifiers() &
+                           (Qt::ControlModifier | Qt::ShiftModifier | Qt::MetaModifier));
+
+    if (altOnly) {
+#ifdef Q_OS_WIN
+        if (ev->nativeVirtualKey() == 0x48) {              // 'H'
+            sceneRenderer_->toggleUi();
+            return;
+        }
+#elif defined(Q_OS_LINUX)
+        const bool isWayland =
+            QProcessEnvironment::systemEnvironment()
+                .value("XDG_SESSION_TYPE")
+                .compare("wayland", Qt::CaseInsensitive) == 0;
+
+        const quint32 sc = ev->nativeScanCode();
+        if ( (isWayland && sc == 35) || (!isWayland && sc == 43) ) {
+            sceneRenderer_->toggleUi();
+            return;
+        }
+#elif defined(Q_OS_MAC)
+        if (ev->nativeScanCode() == 0x04) {
+            sceneRenderer_->toggleUi();
+            return;
+        }
+#endif
+    }
+
+    QWidget::keyPressEvent(ev);
 }

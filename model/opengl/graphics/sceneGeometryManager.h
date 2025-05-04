@@ -88,6 +88,16 @@ public:
      */
     bool isGeometryDirty();
 
+    static QPen sceneOverlayNumberPen;
+
+    bool getUiFlag() const {
+        return uiEnabled_;
+    }
+
+    void setUiFlag(const bool ui) {
+        uiEnabled_ = ui;
+    }
+
 private:
     // Buffer creation helper
     /**
@@ -190,9 +200,10 @@ private:
     int   kOverlayFontSize_ = 10;
 
     // --- Overlay style ---
-    QPen  overlayNumberPen_ = QPen(Qt::black);
     QFont overlayNumberFont_ = QFont("Arial", kOverlayFontSize_);
     QFont overlayAxisNameFont_ = QFont("Arial", kOverlayFontSize_ * 1.5);
+
+    bool uiEnabled_ = true;
 };
 
 #endif // SCENE_GEOMETRY_MANAGER_H

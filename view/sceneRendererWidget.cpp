@@ -48,6 +48,13 @@ void SceneRendererWidget::updateAll()
     }
 }
 
+void SceneRendererWidget::toggleUi()
+{
+    if (glWindow_) {
+        glWindow_->toggleUi();
+    }
+}
+
 std::shared_ptr<SceneInputHandler> SceneRendererWidget::inputHandler() const {
     return glWindow_->inputHandler();
 }

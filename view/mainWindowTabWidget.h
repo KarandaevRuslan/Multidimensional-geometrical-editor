@@ -10,6 +10,7 @@
 #include <QUndoStack>
 #include <memory>
 #include "dataModels/sceneObjectModel.h"
+#include <QKeyEvent>
 
 /**
  * @brief The MainWindowTabWidget class for individual tab views.
@@ -32,9 +33,15 @@ public:
     void setPresenterMainTab(const std::shared_ptr<PresenterMainTab>& presenter);
 
     QList<QAction *> editActions() const;
+    QList<QAction *> viewActions() const;
     int sceneObjectCount() const;
     CameraController *cameraController() const;
     SceneInputHandler *inputHandler() const;
+
+protected:
+    bool event(QEvent* ev) override;
+    void keyPressEvent(QKeyEvent* ev) override;
+
 private slots:
     void copySelected();
     void cutSelected();

@@ -259,6 +259,9 @@ bool PresenterMainTab::save(bool saveAs, QWidget* parentWindow)
             filePath_.isEmpty()? baseName_ + ".json" : filePath_,
             QObject::tr("JSON files (*.json)"));
         if (fn.isEmpty()) return false;
+        QFileInfo fi(fn);
+        QDir dir = fi.dir();
+        fn = dir.filePath(fi.completeBaseName() + ".json");
     }
 
     QFile f(fn);

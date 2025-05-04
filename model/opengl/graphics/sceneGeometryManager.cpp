@@ -9,6 +9,8 @@
 #include "../other/axisSystem.h"
 #include "../../../tools/numTools.h"
 
+QPen SceneGeometryManager::sceneOverlayNumberPen = QPen(Qt::black);
+
 SceneGeometryManager::SceneGeometryManager()
     : coneRadius_(arrowSize_ * 0.3f)
 {
@@ -336,34 +338,36 @@ void SceneGeometryManager::createOrUpdateBuffer(GLuint &vao,
                                                 size_t dataSize,
                                                 GLsizei &vertexCount)
 {
-    if (!data || dataSize == 0) {
-        vertexCount = 0;
-        return;
-    }
-
-    vertexCount = static_cast<GLsizei>(dataSize / sizeof(VertexData));
-
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, dataSize, data, GL_STATIC_DRAW);
 
-    // Position => location 0
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(VertexData),
-                          reinterpret_cast<void*>(offsetof(VertexData, position)));
+    if (!data || dataSize == 0) {
+        vertexCount = 0;
+        glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_STATIC_DRAW);
+    }
+    else
+    {
+        vertexCount = static_cast<GLsizei>(dataSize / sizeof(VertexData));
+        glBufferData(GL_ARRAY_BUFFER, dataSize, data, GL_STATIC_DRAW);
 
-    // Normal => location 1
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(VertexData),
-                          reinterpret_cast<void*>(offsetof(VertexData, normal)));
+        // Position => location 0
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+                              sizeof(VertexData),
+                              reinterpret_cast<void*>(offsetof(VertexData, position)));
 
-    // Color => location 2
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(VertexData),
-                          reinterpret_cast<void*>(offsetof(VertexData, color)));
+        // Normal => location 1
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+                              sizeof(VertexData),
+                              reinterpret_cast<void*>(offsetof(VertexData, normal)));
+
+        // Color => location 2
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+                              sizeof(VertexData),
+                              reinterpret_cast<void*>(offsetof(VertexData, color)));
+    }
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -398,6 +402,7 @@ QPointF SceneGeometryManager::projectToScreen(const QOpenGLWindow *widget,
 void SceneGeometryManager::paintOverlayLabels(QOpenGLWindow *widget,
                         const QMatrix4x4 &mvp) const
 {
+    if (!uiEnabled_) return;
     QPainter painterNumbers(widget);
     painterNumbers.beginNativePainting();
     painterNumbers.endNativePainting();
@@ -405,7 +410,7 @@ void SceneGeometryManager::paintOverlayLabels(QOpenGLWindow *widget,
 
     auto labelIfVisible = [&](float i, const QVector3D &worldPos)
     {
-        painterNumbers.setPen(overlayNumberPen_);
+        painterNumbers.setPen(sceneOverlayNumberPen);
         painterNumbers.setFont(overlayNumberFont_);
 
         QPointF sp = projectToScreen(widget, worldPos, mvp);
@@ -444,6 +449,12 @@ void SceneGeometryManager::paintOverlayLabels(QOpenGLWindow *widget,
 
 void SceneGeometryManager::updateAxes(const QVector3D& cameraPos)
 {
+    if (!uiEnabled_) {
+        createOrUpdateBuffer(vaoAxes_,      vboAxes_,      nullptr, 0, axesVertexCount_);
+        createOrUpdateBuffer(vaoTicks_,     vboTicks_,     nullptr, 0, ticksVertexCount_);
+        createOrUpdateBuffer(vaoArrowCone_, vboArrowCone_, nullptr, 0, arrowConeVertexCount_);
+        return;
+    }
     ::updateAxes(axes_, cameraPos, tickBoxFactor_,  arrowSize_ * 3, origin_);
     updateAxesData();
     updateTicksData();

@@ -13,6 +13,8 @@
 #include "../model/opengl/graphics/sceneGeometryManager.h"
 #include "../model/opengl/input/sceneInputHandler.h"
 
+QColor SceneRenderer::clearSceneColor = QColor(0, 0, 0, 0);
+
 SceneRenderer::SceneRenderer(QWindow* parent)
     : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent)
     , cameraController_(std::make_shared<CameraController>())
@@ -74,7 +76,12 @@ void SceneRenderer::initializeGL()
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     glEnable(GL_MULTISAMPLE);
-    glClearColor(kClearColorR_, kClearColorG_, kClearColorB_, kClearColorA_);
+    glClearColor(
+        clearSceneColor.redF(),
+        clearSceneColor.greenF(),
+        clearSceneColor.blueF(),
+        clearSceneColor.alphaF()
+        );
 
     setupMainProgram();
     setupDepthProgram();
@@ -357,5 +364,11 @@ void SceneRenderer::wheelEvent(QWheelEvent* event)
         wheelTouched_ = true;
     }
     QOpenGLWindow::wheelEvent(event);
+}
+
+void SceneRenderer::toggleUi(){
+    if (!geometryManager_) return;
+    geometryManager_->setUiFlag(!geometryManager_->getUiFlag());
+    update();
 }
 
