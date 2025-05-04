@@ -1,4 +1,5 @@
 #include "scene.h"
+#include <cmath>
 #include <algorithm>
 #include <set>
 #include <stdexcept>
@@ -112,7 +113,7 @@ collapseAdjacentRotators(const std::vector<Rotator>& src)
     double       curAng  = src.front().angle();
 
     const auto flush = [&]() {
-        constexpr double Tau = 2.0 * M_PI;
+        constexpr double Tau = 2.0 * 3.14159265358979323846;
         curAng = std::fmod(curAng, Tau);
         collapsed.emplace_back(curA1, curA2, curAng);
     };

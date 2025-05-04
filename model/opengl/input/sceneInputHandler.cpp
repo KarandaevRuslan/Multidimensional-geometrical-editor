@@ -6,6 +6,7 @@
 #include <QCursor>
 #include <QProcessEnvironment>
 #include <QLatin1String>
+#include <QtGlobal>
 
 SceneInputHandler::SceneInputHandler(QObject *parent)
     : QObject(parent)
@@ -176,7 +177,11 @@ bool SceneInputHandler::mouseMoveEvent(QMouseEvent* event, CameraController& cam
     if (!isWindows || !freeLookMode_ && !mouseButtonPressed_)
         return false;
 
-    const QPoint  globalPos = event->globalPosition().toPoint();
+    #if QT_VERSION_MAJOR >= 6
+        const QPoint globalPos = event->globalPosition().toPoint();
+    #else
+        const QPoint globalPos = event->globalPos();
+    #endif
 
     int dx = globalPos.x() - centerScreenPos_.x();
     int dy = globalPos.y() - centerScreenPos_.y();

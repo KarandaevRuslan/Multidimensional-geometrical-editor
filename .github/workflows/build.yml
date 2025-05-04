@@ -88,11 +88,11 @@ jobs:
       - name: Configure (Debug + tests)
         shell: bash
         run: |
-          if [[ "$runner.os" == "Windows" ]]; then
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}" \
               -G "Visual Studio 17 2022" -A x64 \
               -DCMAKE_BUILD_TYPE=Debug
-          elif [[ "$runner.os" == "Linux" ]]; then
+          elif [[ "$RUNNER_OS" == "Linux" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}" \
               -G Ninja \
               -DCMAKE_BUILD_TYPE=Debug \
