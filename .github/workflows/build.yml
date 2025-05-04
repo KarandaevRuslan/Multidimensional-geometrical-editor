@@ -162,9 +162,10 @@ jobs:
           host: windows
           target: desktop
           arch: win64_msvc2019_64
-          archives: "qtbase qttools"
-          set-env: false
+          tools: "tools_qttools"
+          no-qt-binaries: true
           add-tools-to-path: true
+          set-env: false 
           cache: true
 
       - name: Install Ninja (macOS)
