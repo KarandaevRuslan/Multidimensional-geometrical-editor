@@ -19,6 +19,7 @@
 #include "model/opengl/graphics/sceneGeometryManager.h"
 #include "presenterMain.h"
 #include "view/sceneRenderer.h"
+#include <QStandardPaths>
 
 QString detectLinuxDesktopEnvironment()
 {
