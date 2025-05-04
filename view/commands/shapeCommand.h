@@ -3,7 +3,7 @@
 
 #include <QUndoCommand>
 #include "../../model/NDShape.h"
-
+#include <memory>
 
 class ShapeCommand final : public QUndoCommand {
 public:

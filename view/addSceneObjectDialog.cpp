@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <numeric>
 #include <memory>
+#include <cmath>
 
 /* ---------- ctor & UI ---------- */
 AddSceneObjectDialog::AddSceneObjectDialog(QWidget *parent)
