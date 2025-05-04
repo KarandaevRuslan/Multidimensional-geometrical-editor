@@ -122,7 +122,7 @@ jobs:
           target: desktop
           arch: ${{ matrix.arch }}
           archives: "qtbase qttools qtcharts qtwebengine"
-          cache: false
+          cache: true
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
@@ -265,8 +265,9 @@ jobs:
           fi
 
           mv NDEditor*.AppImage "$BUILD_REL/"
-          if compgen -G "$BUILD_REL/NDEditor-*-$ARCH.AppImage" > /dev/null; then
-            mv "$BUILD_REL"/NDEditor-*-$ARCH.AppImage "$BUILD_REL"/NDEditor.AppImage
+          FIRST_APPIMG=$(ls build/rel/NDEditor*.AppImage | head -n1 || true)
+          if [[ -n "$FIRST_APPIMG" ]]; then
+              mv "$FIRST_APPIMG" build/rel/NDEditor.AppImage
           fi
 
       # ---------------------------------------------------------------------
