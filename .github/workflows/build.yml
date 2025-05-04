@@ -7,8 +7,37 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  unit-tests:
+    name: Unit tests (Debug, Linux x86‑64)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Qt & build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+              qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
+              qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
+              libopengl-dev ninja-build libgtest-dev build-essential
+
+      - name: Configure Debug
+        run: |
+          cmake -S . -B build_dbg \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_PREFIX_PATH=/usr/lib/qt5
+
+      - name: Build tests
+        run: cmake --build build_dbg --target Test
+
+      - name: Run Google Tests
+        run: build_dbg/Test --gtest_color=yes
+
+        
+  build-and-package:
     runs-on: ${{ matrix.os }}
+    needs: unit-tests
     strategy:
       fail-fast: false
       matrix:
@@ -131,49 +160,7 @@ jobs:
           brew install ninja
 
       # ---------------------------------------------------------------------
-      # 1) Debug + tests
-      # ---------------------------------------------------------------------
-      - name: Configure (Debug + tests)
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            cmake -S . -B "${{ matrix.build_dir }}" \
-              -G "Visual Studio 17 2022" -A ${{ matrix.cmake_platform }} \
-              -DCMAKE_BUILD_TYPE=Debug
-          elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            cmake -S . -B "${{ matrix.build_dir }}" \
-              -G Ninja \
-              -DCMAKE_BUILD_TYPE=Debug \
-              -DCMAKE_PREFIX_PATH=/usr/lib/qt5 \
-              -DCMAKE_MODULE_PATH=/usr/lib/$(uname -m)-linux-gnu/cmake/Qt5/ \
-              ${{ matrix.cmake_extra }}
-          else
-            cmake -S . -B "${{ matrix.build_dir }}" \
-              -G Ninja \
-              -DCMAKE_BUILD_TYPE=Debug \
-              ${{ matrix.cmake_extra }}
-          fi
-
-      - name: Build tests
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            cmake --build "${{ matrix.build_dir }}" --config Debug --target Test
-          else
-            cmake --build "${{ matrix.build_dir }}" --target Test
-          fi
-
-      - name: Run Google Tests
-        shell: bash
-        run: |
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            "${{ matrix.build_dir }}"/Debug/Test.exe --gtest_color=yes
-          else
-            "${{ matrix.build_dir }}"/Test --gtest_color=yes
-          fi
-
-      # ---------------------------------------------------------------------
-      # 2) Release build
+      # 1) Release build
       # ---------------------------------------------------------------------
       - name: Configure (Release)
         shell: bash
@@ -205,7 +192,7 @@ jobs:
           fi
 
       # ---------------------------------------------------------------------
-      # 3) Deploy Qt libraries
+      # 2) Deploy Qt libraries
       # ---------------------------------------------------------------------
       - name: Deploy Qt libraries (Windows)
         if: runner.os == 'Windows'
@@ -271,7 +258,7 @@ jobs:
           fi
 
       # ---------------------------------------------------------------------
-      # 4) Upload artefacts
+      # 3) Upload artefacts
       # ---------------------------------------------------------------------
       - name: Upload artefact
         uses: actions/upload-artifact@v4
