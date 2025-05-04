@@ -17,6 +17,7 @@
 #include "../model/opengl/input/sceneInputHandler.h"
 #include <QItemSelectionModel>
 #include <QKeyEvent>
+#include <QProcessEnvironment>
 
 MainWindowTabWidget::MainWindowTabWidget(QWidget *parent)
     : QWidget(parent)
