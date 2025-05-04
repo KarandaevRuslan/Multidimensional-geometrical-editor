@@ -7,8 +7,14 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets UiTools OpenGL OpenGLWidgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets UiTools OpenGL OpenGLWidgets)
+set(QT_MODULES Widgets UiTools OpenGL)
+
+if(QT_VERSION_MAJOR GREATER_EQUAL 6)
+    list(APPEND QT_MODULES OpenGLWidgets)
+endif()
+
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS ${QT_MODULES})
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${QT_MODULES})
 
 set(TS_FILES
 #    NDEditor_en_US.ts
@@ -90,7 +96,6 @@ if (WIN32)
   set(APP_ICON_RC "${CMAKE_SOURCE_DIR}/resources.rc")
 endif()
 
-# macOS: tell CMake which .icns to bundle
 set_source_files_properties(
   "${CMAKE_SOURCE_DIR}/images/app_icon.icns"
   PROPERTIES
@@ -100,6 +105,8 @@ set(MACOSX_ICON_FILE "images/app_icon.icns")
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(NDEditor
+        WIN32
+        MACOSX_BUNDLE
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         ${APP_ICON_RC}
@@ -112,10 +119,10 @@ else()
         )
     else()
         add_executable(NDEditor
+            WIN32
+            MACOSX_BUNDLE
             ${PROJECT_SOURCES}
             ${APP_ICON_RC}
-            MACOSX_BUNDLE
-            WIN32
         )
     endif()
 endif()
@@ -123,12 +130,15 @@ endif()
 target_link_libraries(NDEditor PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
     Qt${QT_VERSION_MAJOR}::OpenGL
-    Qt${QT_VERSION_MAJOR}::OpenGLWidgets
     Qt${QT_VERSION_MAJOR}::UiTools
 )
 
+if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    target_link_libraries(NDEditor PRIVATE Qt6::OpenGLWidgets)
+endif()
+
 if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.NDEditor)
+  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.karandaev.NDEditor)
 endif()
 
 set_target_properties(NDEditor PROPERTIES
@@ -137,8 +147,23 @@ set_target_properties(NDEditor PROPERTIES
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
 )
+
+if(NOT ANDROID)
+    set_target_properties(NDEditor PROPERTIES WIN32_EXECUTABLE TRUE)
+else()
+    set(app_pkg_dir  "${CMAKE_CURRENT_SOURCE_DIR}/android")
+
+    set_target_properties(NDEditor PROPERTIES
+        QT_ANDROID_PACKAGE_SOURCE_DIR      ${app_pkg_dir}
+        QT_ANDROID_VERSION_NAME            ${PROJECT_VERSION}
+        QT_ANDROID_VERSION_CODE            1
+        QT_ANDROID_MIN_SDK_VERSION         23
+        QT_ANDROID_TARGET_SDK_VERSION      34
+        QT_ANDROID_EXTRA_PLUGINS           "imageformats;platforms"
+    )
+endif()
+
 
 include(GNUInstallDirs)
 install(TARGETS NDEditor
