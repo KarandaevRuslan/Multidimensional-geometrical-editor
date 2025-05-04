@@ -13,6 +13,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # ===============================
+          # 1) Linux (x86‑64)
+          # ===============================
           - os: ubuntu-22.04
             host: linux
             arch: gcc_64
@@ -20,13 +23,45 @@ jobs:
             build_dir: build
             artifact_name: NDEditor-linux-x86_64
             dist_path: build/rel/NDEditor.AppImage
+
+          # ===============================
+          # 2) Linux (ARM64)
+          # ===============================
+          - os: ubuntu-22.04-arm
+            host: linux
+            arch: gcc_64           # Debian/Ubuntu arm64 packages share the same arch id
+            cmake_extra: ""
+            build_dir: build
+            artifact_name: NDEditor-linux-arm64
+            dist_path: build/rel/NDEditor.AppImage
+
+          # ===============================
+          # 3) Windows (x86‑64)
+          # ===============================
           - os: windows-latest
             host: windows
             arch: win64_msvc2019_64
+            cmake_platform: x64
             cmake_extra: ""
             build_dir: build
             artifact_name: NDEditor-windows-x86_64
             dist_path: build/rel/Release/**
+
+          # ===============================
+          # 4) Windows (ARM64)
+          # ===============================
+          - os: windows-11-arm
+            host: windows
+            arch: win64_msvc2019_arm64
+            cmake_platform: ARM64
+            cmake_extra: ""
+            build_dir: build
+            artifact_name: NDEditor-windows-arm64
+            dist_path: build/rel/Release/**
+
+          # ===============================
+          # 5) macOS Intel (x86‑64)
+          # ===============================
           - os: macos-latest
             host: mac
             arch: clang_64
@@ -35,29 +70,40 @@ jobs:
             artifact_name: NDEditor-macos-x86_64
             dist_path: build/rel/NDEditor.app.tar.gz
 
+          # ===============================
+          # 6) macOS Apple Silicon (ARM64)
+          # ===============================
+          - os: macos-14
+            host: mac
+            arch: clang_64          # Universal package includes arm64 binaries
+            cmake_extra: "-DCMAKE_OSX_ARCHITECTURES=arm64"
+            build_dir: build
+            artifact_name: NDEditor-macos-arm64
+            dist_path: build/rel/NDEditor.app.tar.gz
+
     steps:
       - uses: actions/checkout@v4
         name: Checkout source
 
+      # === Install Qt (Linux) ===
       - name: Install Qt (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo add-apt-repository universe
           sudo apt-get update
-          
-          sudo apt-get update && sudo apt-get install -y \
+          sudo apt-get install -y \
               qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
               qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
               libopengl-dev libfuse2 ninja-build libgtest-dev libqt5x11extras5-dev \
               build-essential qtcreator qttools5-dev libqt5opengl5-dev mesa-common-dev
-          
-      # === macOS ===
+
+      # === Install Qt (macOS/intel & apple‑silicon) ===
       - name: Install Qt (macOS)
         if: runner.os == 'macOS'
         uses: jurplel/install-qt-action@v4
         with:
-          dir: ${{ runner.workspace }} 
+          dir: ${{ runner.workspace }}
           version: 6.7.3
           host: ${{ matrix.host }}
           target: desktop
@@ -65,7 +111,7 @@ jobs:
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
 
-      # === Windows ===
+      # === Install Qt (Windows x86‑64 & arm64) ===
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v4
@@ -84,20 +130,22 @@ jobs:
           brew update
           brew install ninja
 
+      # ---------------------------------------------------------------------
       # 1) Debug + tests
+      # ---------------------------------------------------------------------
       - name: Configure (Debug + tests)
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}" \
-              -G "Visual Studio 17 2022" -A x64 \
+              -G "Visual Studio 17 2022" -A ${{ matrix.cmake_platform }} \
               -DCMAKE_BUILD_TYPE=Debug
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}" \
               -G Ninja \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_PREFIX_PATH=/usr/lib/qt5 \
-              -DCMAKE_MODULE_PATH=/usr/lib/x86_64-linux-gnu/cmake/Qt5/ \
+              -DCMAKE_MODULE_PATH=/usr/lib/$(uname -m)-linux-gnu/cmake/Qt5/ \
               ${{ matrix.cmake_extra }}
           else
             cmake -S . -B "${{ matrix.build_dir }}" \
@@ -105,7 +153,6 @@ jobs:
               -DCMAKE_BUILD_TYPE=Debug \
               ${{ matrix.cmake_extra }}
           fi
-
 
       - name: Build tests
         shell: bash
@@ -120,18 +167,20 @@ jobs:
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            ./"${{ matrix.build_dir }}"/Debug/Test.exe --gtest_color=yes
+            "${{ matrix.build_dir }}"/Debug/Test.exe --gtest_color=yes
           else
-            ./"${{ matrix.build_dir }}"/Test --gtest_color=yes
+            "${{ matrix.build_dir }}"/Test --gtest_color=yes
           fi
 
-      # 2) Release
+      # ---------------------------------------------------------------------
+      # 2) Release build
+      # ---------------------------------------------------------------------
       - name: Configure (Release)
         shell: bash
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
-              -G "Visual Studio 17 2022" -A x64 \
+              -G "Visual Studio 17 2022" -A ${{ matrix.cmake_platform }} \
               -DCMAKE_BUILD_TYPE=Release
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
@@ -154,8 +203,10 @@ jobs:
           else
             cmake --build "${{ matrix.build_dir }}/rel" --target NDEditor
           fi
-          
+
+      # ---------------------------------------------------------------------
       # 3) Deploy Qt libraries
+      # ---------------------------------------------------------------------
       - name: Deploy Qt libraries (Windows)
         if: runner.os == 'Windows'
         shell: bash
@@ -176,59 +227,45 @@ jobs:
           set -euo pipefail
           set -x
 
-          # Install prerequisites
           sudo apt-get update
-          sudo apt-get install -y \
-            libfuse2 \
-            wget patchelf desktop-file-utils
+          sudo apt-get install -y libfuse2 wget patchelf desktop-file-utils
 
-          # Symlink Qt5 qmake explicitly (fixes qmake detection)
           sudo ln -sf /usr/lib/qt5/bin/qmake /usr/bin/qmake
-
-          # Verify qmake points correctly (should show Qt5 version)
           qmake -v
 
-          # Download linuxdeployqt (Qt5-compatible continuous build)
-          LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
-          wget -qO "$LINUXDEPLOYQT" \
-            https://github.com/probonopd/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT
-          chmod a+x "$LINUXDEPLOYQT"
+          # Select correct AppImage tooling for host architecture
+          ARCH=$(uname -m)
+          if [[ "$ARCH" == "aarch64" ]]; then
+            LINUXDEPLOYQT=linuxdeployqt-continuous-aarch64.AppImage
+            APPIMAGETOOL=appimagetool-aarch64.AppImage
+          else
+            LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
+            APPIMAGETOOL=appimagetool-x86_64.AppImage
+          fi
 
-          # Download appimagetool
-          APPIMAGETOOL=appimagetool-x86_64.AppImage
-          wget -qO "$APPIMAGETOOL" \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL
+          wget -qO "$LINUXDEPLOYQT" "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT"
+          chmod a+x "$LINUXDEPLOYQT"
+          wget -qO "$APPIMAGETOOL" "https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL"
           chmod a+x "$APPIMAGETOOL"
 
-          # Prepare AppDir
-          BUILD_REL=build/rel
+          BUILD_REL=${{ matrix.build_dir }}/rel
           APPDIR=$BUILD_REL/AppDir
           rm -rf "$APPDIR"
-          mkdir -p \
-            "$APPDIR/usr/bin" \
-            "$APPDIR/usr/share/applications" \
-            "$APPDIR/usr/share/icons/hicolor/256x256/apps"
+          mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
-          # Copy binary, .desktop file, and icon
-          cp "$BUILD_REL/NDEditor" \
-             "$APPDIR/usr/bin/"
-          cp NDEditor.desktop \
-             "$APPDIR/usr/share/applications/"
-          cp images/app_icon.png \
-             "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
+          cp "$BUILD_REL/NDEditor" "$APPDIR/usr/bin/"
+          cp NDEditor.desktop "$APPDIR/usr/share/applications/"
+          cp images/app_icon.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
 
-          # Bundle Qt dependencies and build AppImage (using Qt5)
           export PATH="/usr/lib/qt5/bin:$PATH"
-          ./"$LINUXDEPLOYQT" \
-            "$APPDIR/usr/share/applications/NDEditor.desktop" \
-            -appimage
+          ./$LINUXDEPLOYQT "$APPDIR/usr/share/applications/NDEditor.desktop" -appimage
 
-          # Move resulting AppImage into rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
-          mv "$BUILD_REL"/NDEditor-*-x86_64.AppImage "$BUILD_REL"/NDEditor.AppImage
+          mv "$BUILD_REL"/NDEditor-*-$ARCH.AppImage "$BUILD_REL"/NDEditor.AppImage
 
-            
-      # 4) Upload from build/rel
+      # ---------------------------------------------------------------------
+      # 4) Upload artefacts
+      # ---------------------------------------------------------------------
       - name: Upload artefact
         uses: actions/upload-artifact@v4
         with:
