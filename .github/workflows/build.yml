@@ -153,6 +153,19 @@ jobs:
           arch: ${{ matrix.arch }}
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
+          
+      - name: Install Qt host tools (x64, needed for windeployqt)
+        if: matrix.arch == 'win64_msvc2019_arm64'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.7.3
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          archives: "qtbase qttools"
+          set-env: false
+          add-tools-to-path: true
+          cache: true
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
@@ -199,7 +212,14 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          windeployqt "${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
+          APP="${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
+          if [[ '${{ matrix.arch }}' == 'win64_msvc2019_arm64' ]]; then
+            windeployqt \
+              --qtpaths "$QT_ROOT_DIR/bin/qtpaths.bat" \
+              "$APP"
+          else
+            windeployqt "$APP"
+          fi
 
       - name: Deploy Qt libraries (macOS)
         if: runner.os == 'macOS'
