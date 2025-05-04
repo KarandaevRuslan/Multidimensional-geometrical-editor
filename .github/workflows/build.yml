@@ -19,7 +19,8 @@ jobs:
           sudo apt-get install -y \
               qtbase5-dev qtchooser qtbase5-dev-tools qtdeclarative5-dev \
               qtquickcontrols2-5-dev qtwebengine5-dev libglu1-mesa-dev libgl1-mesa-dev \
-              libopengl-dev ninja-build libgtest-dev build-essential
+              libopengl-dev libfuse2 ninja-build libgtest-dev libqt5x11extras5-dev \
+              build-essential qtcreator qttools5-dev libqt5opengl5-dev mesa-common-dev
 
       - name: Configure Debug
         run: |
