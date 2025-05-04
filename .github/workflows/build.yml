@@ -220,7 +220,7 @@ jobs:
           macdeployqt "${{ matrix.build_dir }}/rel/NDEditor.app" -verbose=1
           tar -czf ${{ matrix.build_dir }}/rel/NDEditor.app.tar.gz -C ${{ matrix.build_dir }}/rel NDEditor.app
 
-      - name: Deploy Qt libraries and create AppImage (Linux)
+      - name: Deploy Qt libraries & create AppImage (Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -228,7 +228,7 @@ jobs:
           set -x
 
           sudo apt-get update
-          sudo apt-get install -y libfuse2 wget patchelf desktop-file-utils
+          sudo apt-get install -y libfuse2 wget patchelf desktop-file-utils imagemagick
 
           sudo ln -sf /usr/lib/qt5/bin/qmake /usr/bin/qmake
           qmake -v
@@ -238,39 +238,33 @@ jobs:
           rm -rf "$APPDIR"
           mkdir -p "$APPDIR/usr/bin" "$APPDIR/usr/share/applications" "$APPDIR/usr/share/icons/hicolor/256x256/apps"
 
+          # Copy binary & desktop file
           cp "$BUILD_REL/NDEditor" "$APPDIR/usr/bin/"
           cp NDEditor.desktop "$APPDIR/usr/share/applications/"
-          cp images/app_icon.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
+
+          # Ensure we provide a 256×256 PNG icon (linuxdeploy fails on 1024×1024)
+          ICON_SRC=images/app_icon.png
+          ICON_DST="$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
+          convert "$ICON_SRC" -resize 256x256 "$ICON_DST"
 
           ARCH=$(uname -m)
           if [[ "$ARCH" == "aarch64" ]]; then
-            # -----------------------------
-            # Native ARM64: use linuxdeploy + plugin
-            # -----------------------------
             LINUXDEPLOY=linuxdeploy-aarch64.AppImage
             QT_PLUGIN=linuxdeploy-plugin-qt-aarch64.AppImage
-
             wget -nv "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$LINUXDEPLOY" -O "$LINUXDEPLOY"
             wget -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/$QT_PLUGIN" -O "$QT_PLUGIN"
             chmod a+x "$LINUXDEPLOY" "$QT_PLUGIN"
-
             ."/$LINUXDEPLOY" --appdir "$APPDIR" --plugin qt --output appimage \
               --desktop-file "$APPDIR/usr/share/applications/NDEditor.desktop" \
-              --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
+              --icon-file "$ICON_DST"
           else
-            # -----------------------------
-            # x86_64: keep using linuxdeployqt (Qt5 variant)
-            # -----------------------------
             LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
             wget -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT" -O "$LINUXDEPLOYQT"
             chmod a+x "$LINUXDEPLOYQT"
-
             ."/$LINUXDEPLOYQT" "$APPDIR/usr/share/applications/NDEditor.desktop" -appimage
           fi
 
-          # Move resulting AppImage into rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
-          # Unify name to NDEditor.AppImage regardless of arch
           if compgen -G "$BUILD_REL/NDEditor-*-$ARCH.AppImage" > /dev/null; then
             mv "$BUILD_REL"/NDEditor-*-$ARCH.AppImage "$BUILD_REL"/NDEditor.AppImage
           fi
