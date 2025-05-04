@@ -48,13 +48,13 @@ jobs:
             dist_path: build/rel/Release/**
 
           # ===============================
-          # 4) Windows (ARM64)
+          # 4) Windows (ARM64) Cross-Compilation
           # ===============================
-          - os: windows-11-arm
+          - os: windows-latest
             host: windows
             arch: win64_msvc2019_arm64
             cmake_platform: ARM64
-            cmake_extra: ""
+            cmake_extra: "-Thost=x64"
             build_dir: build
             artifact_name: NDEditor-windows-arm64
             dist_path: build/rel/Release/**
@@ -112,8 +112,8 @@ jobs:
           cache: true
 
       # === Install Qt (Windows x86‑64 & arm64) ===
-      - name: Install Qt (Windows x86‑64)
-        if: matrix.os == 'windows-latest'
+      - name: Install Qt (Windows x86‑64 / arm 64)
+        if: runner.os == 'windows'
         uses: jurplel/install-qt-action@v4
         with:
           dir: ${{ runner.workspace }}
@@ -123,26 +123,6 @@ jobs:
           arch: ${{ matrix.arch }}
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
-
-      - name: Set up Python 3.11 (Win‑ARM64)
-        if: matrix.os == 'windows-11-arm'
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          architecture: arm64
-      
-      - name: Install Qt (Windows ARM64)
-        if: matrix.os == 'windows-11-arm'
-        uses: jurplel/install-qt-action@v4
-        with:
-          dir: ${{ runner.workspace }}
-          version: 6.7.3
-          host: ${{ matrix.host }}
-          target: desktop
-          arch: ${{ matrix.arch }}
-          archives: "qtbase qttools qtcharts qtwebengine"
-          cache: true
-          setup-python: false
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
@@ -201,7 +181,7 @@ jobs:
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
               -G "Visual Studio 17 2022" -A ${{ matrix.cmake_platform }} \
-              -DCMAKE_BUILD_TYPE=Release
+              -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_extra }}
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
               -G Ninja \
