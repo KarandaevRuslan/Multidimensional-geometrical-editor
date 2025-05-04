@@ -124,12 +124,16 @@ jobs:
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
 
-      - name: Install 7‑Zip CLI (Windows ARM64)
+      - name: Install 7‑Zip CLI (ARM64)
         if: matrix.os == 'windows-11-arm'
         shell: powershell
         run: |
-          winget install --id 7zip.7zip -e `
-            --accept-source-agreements --accept-package-agreements
+          $ProgressPreference = 'SilentlyContinue'
+          $url  = 'https://www.7-zip.org/a/7z2405-arm64.exe'
+          $file = "$env:TEMP\7zip.exe"
+          Invoke-WebRequest $url -OutFile $file
+          Start-Process $file -ArgumentList '/S' -NoNewWindow -Wait
+          # 7‑Zip lands in "C:\Program Files\7-Zip\7z.exe"
 
       - name: Install Qt (Windows ARM64)
         if: matrix.os == 'windows-11-arm'
