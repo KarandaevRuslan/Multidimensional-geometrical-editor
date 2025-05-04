@@ -124,6 +124,13 @@ jobs:
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
 
+      - name: Set up Python 3.11 (Win‑ARM64)
+        if: matrix.os == 'windows-11-arm'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          architecture: arm64
+      
       - name: Install Qt (Windows ARM64)
         if: matrix.os == 'windows-11-arm'
         uses: jurplel/install-qt-action@v4
@@ -135,8 +142,7 @@ jobs:
           arch: ${{ matrix.arch }}
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
-          aqtversion:   '>=3.4.0'
-          py7zrversion: '>=0.24.0'
+          setup-python: false
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
