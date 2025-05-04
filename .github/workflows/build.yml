@@ -112,8 +112,8 @@ jobs:
           cache: true
 
       # === Install Qt (Windows x86‑64 & arm64) ===
-      - name: Install Qt (Windows)
-        if: runner.os == 'Windows'
+      - name: Install Qt (Windows x86‑64)
+        if: matrix.os == 'windows-latest'
         uses: jurplel/install-qt-action@v4
         with:
           dir: ${{ runner.workspace }}
@@ -123,6 +123,27 @@ jobs:
           arch: ${{ matrix.arch }}
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
+
+      - name: Install 7‑Zip CLI (Windows ARM64)
+        if: matrix.os == 'windows-11-arm'
+        shell: powershell
+        run: |
+          winget install --id 7zip.7zip -e `
+            --accept-source-agreements --accept-package-agreements
+
+      - name: Install Qt (Windows ARM64)
+        if: matrix.os == 'windows-11-arm'
+        uses: jurplel/install-qt-action@v4
+        with:
+          dir: ${{ runner.workspace }}
+          version: 6.7.3
+          host: ${{ matrix.host }}
+          target: desktop
+          arch: ${{ matrix.arch }}
+          archives: "qtbase qttools qtcharts qtwebengine"
+          cache: true
+          extra: '--external "C:\\Program Files\\7-Zip\\7z.exe"'
+          py7zrversion: ''
 
       - name: Install Ninja (macOS)
         if: runner.os == 'macOS'
