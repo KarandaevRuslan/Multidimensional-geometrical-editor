@@ -9,6 +9,7 @@
 #include <QSysInfo>
 #include <QProcess>
 #include <QDebug>
+#include <QMetaType>
 
 #include "tools/configManager.h"
 #include "tools/logger.h"
@@ -107,6 +108,10 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setWindowIcon(QIcon(":/images/app_icon.png"));
+
+    qRegisterMetaType<std::shared_ptr<NDShape>>("std::shared_ptr<NDShape>");
+    qRegisterMetaType<std::shared_ptr<Projection>>("std::shared_ptr<Projection>");
+    qRegisterMetaType<std::vector<Rotator>>("std::vector<Rotator>");
 
     QCoreApplication::setApplicationName("NDEditor");
     QCoreApplication::setOrganizationName("Ruslan Karandaev");

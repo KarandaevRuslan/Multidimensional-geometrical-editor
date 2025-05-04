@@ -12,7 +12,6 @@
 #include <QDialogButtonBox>
 #include <QHBoxLayout>
 #include <QMenu>
-#include <stdexcept>
 #include <QStyledItemDelegate>
 #include <QUndoStack>
 #include <QUndoCommand>

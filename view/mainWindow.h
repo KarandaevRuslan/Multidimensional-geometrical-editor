@@ -7,9 +7,6 @@
 #include <QTabWidget>
 #include <QLabel>
 #include "../forms/ui_mainWindow.h"
-#include "../view/sceneRenderer.h"
-#include "dataModels/sceneObjectModel.h"
-#include "delegates/sceneObjectDelegate.h"
 
 class PresenterMain;
 

@@ -1,8 +1,6 @@
 #include "mainWindow.h"
 #include "mainWindowTabWidget.h"
 #include "../view/sceneRenderer.h"
-#include "commands/addSceneObjectCommand.h"
-#include "commands/removeSceneObjectCommand.h"
 #include <QFile>
 #include <QUiLoader>
 #include <QDebug>

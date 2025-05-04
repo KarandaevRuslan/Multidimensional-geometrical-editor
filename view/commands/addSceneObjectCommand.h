@@ -4,7 +4,6 @@
 #include <QUndoCommand>
 #include <QColor>
 #include <memory>
-#include "../../model/sceneColorificator.h"
 #include "../dataModels/sceneObjectModel.h"
 
 /**

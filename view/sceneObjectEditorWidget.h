@@ -6,7 +6,6 @@
 #include <memory>
 
 #include "../model/scene.h"
-#include "../model/sceneColorificator.h"
 
 #include "axesGroupBox.h"
 #include "dataModels/rotatorTableModel.h"

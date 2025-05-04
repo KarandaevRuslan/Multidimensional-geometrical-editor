@@ -303,17 +303,17 @@ void SceneObjectEditorWidget::openShapeDialog()
 void SceneObjectEditorWidget::addRotator() {
     // commit changes
     SceneObject upd = cur_->clone();
-    upd.rotators.emplace_back(Rotator(0, 1, 0.0));
+    upd.rotators.emplace_back(0, 1, 0.0);
     QColor c = curColorGetter_();
     commit(true, upd, c);
 }
 
 void SceneObjectEditorWidget::copyRotator() {
     rotClipboard_.clear();
-    auto sel = rotView_->selectionModel()->selectedRows();
+    const auto sel = rotView_->selectionModel()->selectedRows();
     for (const QModelIndex &idx : sel) {
         int row = idx.row();
-        const Rotator &r = cur_->rotators[idx.row()];
+        const Rotator &r = cur_->rotators[row];
         rotClipboard_.append(r);
     }
 }
@@ -336,13 +336,14 @@ void SceneObjectEditorWidget::pasteRotator() {
 
 void SceneObjectEditorWidget::deleteRotator() {
     if (!cur_) return;
-    QList<int> rows;
-    for (const QModelIndex &idx : rotView_->selectionModel()->selectedRows())
-        rows << idx.row();
+    std::vector<int> rows;
+    const QModelIndexList sel = rotView_->selectionModel()->selectedRows();
+    for (const QModelIndex &idx : sel)
+        rows.push_back(idx.row());
 
-    if (rows.isEmpty()) return;
+    if (rows.empty()) return;
 
-    std::sort(rows.begin(), rows.end(), std::greater<int>());
+    std::sort(rows.begin(), rows.end(), std::greater<>());
     SceneObject upd = cur_->clone();
     for (int r : rows)
         upd.rotators.erase(upd.rotators.begin() + r);

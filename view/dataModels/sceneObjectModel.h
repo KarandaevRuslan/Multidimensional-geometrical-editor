@@ -8,6 +8,10 @@
 #include "../../model/scene.h"
 #include "../../model/sceneColorificator.h"
 
+Q_DECLARE_METATYPE(std::shared_ptr<NDShape>);
+Q_DECLARE_METATYPE(std::shared_ptr<Projection>);
+Q_DECLARE_METATYPE(std::vector<Rotator>);
+
 /**
  * @brief List-model that exposes SceneObject items for QML / Qt Views.
  *

@@ -10,7 +10,8 @@ AxesGroupBox::AxesGroupBox(const QString& t,
                            QWidget* parent)
     : QGroupBox(t, parent)
 {
-    auto *outer = new QVBoxLayout(this);
+    auto *outer = new QVBoxLayout;
+    setLayout(outer);
 
     for (double d : start)
     {

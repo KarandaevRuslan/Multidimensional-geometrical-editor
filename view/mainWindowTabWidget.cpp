@@ -369,7 +369,7 @@ void MainWindowTabWidget::exportSelectedObject()
 
         const QString fileName =
             QFileDialog::getSaveFileName(this, tr("Save object as"),
-                                         obj->name + u".json"_qs,
+                                         obj->name + QStringLiteral(".json"),
                                          tr("JSON files (*.json)"));
         if (fileName.isEmpty()) return;
 
@@ -379,8 +379,7 @@ void MainWindowTabWidget::exportSelectedObject()
                 this,
                 tr("Export object"),
                 tr("Cannot open “%1” for writing:\n%2")
-                    .arg(fileName)
-                    .arg(f.errorString())
+                    .arg(fileName, f.errorString())
                 );
             return;
         }
@@ -424,8 +423,7 @@ void MainWindowTabWidget::importObject()
                 this,
                 tr("Import object"),
                 tr("Cannot open “%1”:\n%2")
-                    .arg(fileName)
-                    .arg(f.errorString())
+                    .arg(fileName, f.errorString())
                 );
             return;
         }
