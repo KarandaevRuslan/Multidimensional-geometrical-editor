@@ -233,21 +233,6 @@ jobs:
           sudo ln -sf /usr/lib/qt5/bin/qmake /usr/bin/qmake
           qmake -v
 
-          # Select correct AppImage tooling for host architecture
-          ARCH=$(uname -m)
-          if [[ "$ARCH" == "aarch64" ]]; then
-            LINUXDEPLOYQT=linuxdeployqt-continuous-aarch64.AppImage
-            APPIMAGETOOL=appimagetool-aarch64.AppImage
-          else
-            LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
-            APPIMAGETOOL=appimagetool-x86_64.AppImage
-          fi
-
-          wget -qO "$LINUXDEPLOYQT" "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT"
-          chmod a+x "$LINUXDEPLOYQT"
-          wget -qO "$APPIMAGETOOL" "https://github.com/AppImage/AppImageKit/releases/download/continuous/$APPIMAGETOOL"
-          chmod a+x "$APPIMAGETOOL"
-
           BUILD_REL=${{ matrix.build_dir }}/rel
           APPDIR=$BUILD_REL/AppDir
           rm -rf "$APPDIR"
@@ -257,11 +242,38 @@ jobs:
           cp NDEditor.desktop "$APPDIR/usr/share/applications/"
           cp images/app_icon.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
 
-          export PATH="/usr/lib/qt5/bin:$PATH"
-          ./$LINUXDEPLOYQT "$APPDIR/usr/share/applications/NDEditor.desktop" -appimage
+          ARCH=$(uname -m)
+          if [[ "$ARCH" == "aarch64" ]]; then
+            # -----------------------------
+            # Native ARM64: use linuxdeploy + plugin
+            # -----------------------------
+            LINUXDEPLOY=linuxdeploy-aarch64.AppImage
+            QT_PLUGIN=linuxdeploy-plugin-qt-aarch64.AppImage
 
+            wget -nv "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$LINUXDEPLOY" -O "$LINUXDEPLOY"
+            wget -nv "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/$QT_PLUGIN" -O "$QT_PLUGIN"
+            chmod a+x "$LINUXDEPLOY" "$QT_PLUGIN"
+
+            ."/$LINUXDEPLOY" --appdir "$APPDIR" --plugin qt --output appimage \
+              --desktop-file "$APPDIR/usr/share/applications/NDEditor.desktop" \
+              --icon-file "$APPDIR/usr/share/icons/hicolor/256x256/apps/ndeditor.png"
+          else
+            # -----------------------------
+            # x86_64: keep using linuxdeployqt (Qt5 variant)
+            # -----------------------------
+            LINUXDEPLOYQT=linuxdeployqt-continuous-x86_64.AppImage
+            wget -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/$LINUXDEPLOYQT" -O "$LINUXDEPLOYQT"
+            chmod a+x "$LINUXDEPLOYQT"
+
+            ."/$LINUXDEPLOYQT" "$APPDIR/usr/share/applications/NDEditor.desktop" -appimage
+          fi
+
+          # Move resulting AppImage into rel folder
           mv NDEditor*.AppImage "$BUILD_REL/"
-          mv "$BUILD_REL"/NDEditor-*-$ARCH.AppImage "$BUILD_REL"/NDEditor.AppImage
+          # Unify name to NDEditor.AppImage regardless of arch
+          if compgen -G "$BUILD_REL/NDEditor-*-$ARCH.AppImage" > /dev/null; then
+            mv "$BUILD_REL"/NDEditor-*-$ARCH.AppImage "$BUILD_REL"/NDEditor.AppImage
+          fi
 
       # ---------------------------------------------------------------------
       # 4) Upload artefacts
