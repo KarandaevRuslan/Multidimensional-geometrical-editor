@@ -82,7 +82,7 @@ jobs:
           # ===============================
           - os: windows-latest
             host: windows
-            arch: win64_msvc2019_arm64
+            arch: win64_msvc2022_arm64
             cmake_platform: ARM64
             cmake_extra: "-Thost=x64"
             build_dir: build
@@ -152,20 +152,6 @@ jobs:
           target: desktop
           arch: ${{ matrix.arch }}
           archives: "qtbase qttools qtcharts qtwebengine"
-          cache: true
-          
-      - name: Install Qt host tools (x64, needed for windeployqt)
-        if: matrix.arch == 'win64_msvc2019_arm64'
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: 6.7.3
-          host: windows
-          target: desktop
-          arch: win64_msvc2019_64
-          tools: "tools_qttools"
-          no-qt-binaries: true
-          add-tools-to-path: true
-          set-env: false 
           cache: true
 
       - name: Install Ninja (macOS)
