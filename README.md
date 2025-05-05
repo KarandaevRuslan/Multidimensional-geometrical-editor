@@ -1,5 +1,4 @@
 # NDEditor
-<!-- Formerly “Multidimensional Geometrical Editor” -->
 
 <!-- Badges --------------------------------------------------------------->
 [![CI](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml)
@@ -137,7 +136,7 @@ The following high‑level goals are planned for the next releases.
 - **Animation timeline**: key‑frame rotations and camera paths  
 - **Additional export formats**: OBJ for 3‑D slices and GLTF with animation  
 - **Plugin API** for procedural shape generators (C++ / Python)  
-- **Localization** using Qt `.ts` files (🇷🇺 Russian first, community translations later)  
+- **Localization** using Qt `.ts` files  
 - **VR / AR preview** (OpenXR) for immersive 4‑D exploration  
 - **Continuous integration of clang‑tidy & static‑analysis** in CI workflow 
 
@@ -161,7 +160,7 @@ For bug reports or feature requests open a GitHub Issue or write an email.
 ---
 
 ## License
-This project is licensed under the **MIT License**—see [`LICENSE`](LICENSE) for details.  
+This project is licensed under the **MIT License** — see [`LICENSE`](LICENSE) for details.  
 MIT is short, permissive and widely understood, making it easy for anyone to use the code (including in commercial or academic projects) while still requiring attribution.
 
 ---
@@ -170,7 +169,7 @@ MIT is short, permissive and widely understood, making it easy for anyone to use
 **Ruslan Karandaev**  
 - Email: <karandaevruslan@gmail.com>  
 - GitHub Issues: <https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/issues>  
-- SimpleX Chat / Session ID: <!-- TODO -->
+- Session Messenger ID: 05e1f10a2be638472cd29782cdc828ff5de86ef3fa5659d601a12d77b487fba65b
 
 ---
 
