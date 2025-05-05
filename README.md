@@ -1,12 +1,10 @@
-<p align="center">
-  <img
-    src="images/app_icon.png"
-    alt="NDEditor icon"
-    width="350"
-    style="margin: 1rem 0" />
-</p>
-
-# NDEditor
+<h1 align="center">
+  <br>
+  <a href="https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/"><img src="images/app_icon.png" width="220"></a>
+  <br>
+  <b>NDEditor</b>
+  <br>
+</h1>
 
 <!-- Badges --------------------------------------------------------------->
 [![CI](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml)
