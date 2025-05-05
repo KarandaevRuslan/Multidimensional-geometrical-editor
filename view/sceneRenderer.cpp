@@ -313,7 +313,38 @@ void SceneRenderer::keyPressEvent(QKeyEvent* event)
 {
     if (inputHandler_ && cameraController_)
         inputHandler_->keyPressEvent(event, *cameraController_);
+
+    const bool altOnly = (event->modifiers() & Qt::AltModifier) &&
+                         !(event->modifiers() &
+                           (Qt::ControlModifier | Qt::ShiftModifier | Qt::MetaModifier));
+
+    if (altOnly) {
+#ifdef Q_OS_WIN
+        if (event->nativeVirtualKey() == 0x48) {              // 'H'
+            toggleUi();
+            return;
+        }
+#elif defined(Q_OS_LINUX)
+        const bool isWayland =
+            QProcessEnvironment::systemEnvironment()
+                .value("XDG_SESSION_TYPE")
+                .compare("wayland", Qt::CaseInsensitive) == 0;
+
+        const quint32 sc = ev->nativeScanCode();
+        if ( (isWayland && sc == 35) || (!isWayland && sc == 43) ) {
+            toggleUi();
+            return;
+        }
+#elif defined(Q_OS_MAC)
+        if (ev->nativeScanCode() == 0x04) {
+            toggleUi();
+            return;
+        }
+#endif
+    }
+
     QOpenGLWindow::keyPressEvent(event);
+
 }
 
 void SceneRenderer::keyReleaseEvent(QKeyEvent* event)
