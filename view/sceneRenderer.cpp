@@ -12,6 +12,8 @@
 #include "../model/opengl/objectController/cameraController.h"
 #include "../model/opengl/graphics/sceneGeometryManager.h"
 #include "../model/opengl/input/sceneInputHandler.h"
+#include <QKeyEvent>
+#include <QProcessEnvironment>
 
 QColor SceneRenderer::clearSceneColor = QColor(0, 0, 0, 0);
 
