@@ -1,16 +1,16 @@
+<p align="center">
+  <img
+    src="images/app_icon.png"
+    alt="NDEditor icon"
+    width="350"
+    style="margin: 1rem 0" />
+</p>
+
 # NDEditor
 
 <!-- Badges --------------------------------------------------------------->
 [![CI](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
-
-<p align="center">
-  <img
-    src="images/app_icon.png"
-    alt="NDEditor icon"
-    width="200"
-    style="margin: 1rem 0" />
-</p>
 
 ## Overview
 **NDEditor** is a cross‑platform desktop application for **creating, editing and exploring high‑dimensional objects**.  
@@ -49,29 +49,9 @@ Built with **C++17 · CMake · Qt 5/6 · OpenGL** and distributed for **Window
 ---
 
 ## Screenshots
-<p align="center">
-  <figure style="display:inline-block; margin:0 16px 32px; text-align:center">
-    <img
-      src="preview%20images/permutohedron8.png"
-      alt="Permutohedron (8‑D projection)"
-      width="800" />
-    <figcaption style="margin-top:8px">
-      Permutohedron&nbsp;(8&nbsp;D&nbsp;projection)
-    </figcaption>
-  </figure>
-</p>
-
-<p align="center">
-  <figure style="display:inline-block; margin:0 16px 32px; text-align:center">
-    <img
-      src="preview%20images/spheres.png"
-      alt="10 000 coloured spheres"
-      width="800" />
-    <figcaption style="margin-top:8px">
-      10 000 coloured spheres
-    </figcaption>
-  </figure>
-</p>
+| ![Permutohedron 8-D](preview%20images/permutohedron8.png) | ![10000 spheres](preview%20images/spheres.png) |
+|:--:|:--:|
+| *Permutohedron&nbsp;(8 D projection)* | *10 000 coloured spheres* |
 
 ---
 
