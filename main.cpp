@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<std::vector<Rotator>>("std::vector<Rotator>");
 
     QCoreApplication::setApplicationName("NDEditor");
-    QCoreApplication::setOrganizationName("Ruslan Karandaev");
+    QCoreApplication::setOrganizationName("Ruslan_Karandaev");
     QCoreApplication::setApplicationVersion(QT_VERSION_STR);
     QCommandLineParser parser;
     parser.setApplicationDescription(QCoreApplication::applicationName());
@@ -141,12 +141,19 @@ int main(int argc, char *argv[])
     QSurfaceFormat::setDefaultFormat(fmt);
 
     QString dataDir;
-    #ifdef Q_OS_WIN
-    dataDir = QCoreApplication::applicationDirPath();
+    #if defined(Q_OS_ANDROID) || defined(Q_OS_MAC)
+        dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     #else
-    dataDir = QStandardPaths::writableLocation(
-        QStandardPaths::AppDataLocation
-        );
+        QString documents = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        if (documents.isEmpty()) {
+            dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+        } else {
+            QDir dir(documents);
+            if (!dir.exists("NDEditor"))
+                dir.mkdir("NDEditor");
+            dir.cd("NDEditor");
+            dataDir = dir.absolutePath();
+        }
     #endif
 
     if (!QDir().mkpath(dataDir)) {
