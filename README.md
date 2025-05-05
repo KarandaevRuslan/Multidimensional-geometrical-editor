@@ -5,6 +5,10 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 
 ## Overview
+<p align="center">
+  <img src="images/app_icon.png" alt="NDEditor icon" width="128">
+</p>
+
 **NDEditor** is a cross‑platform desktop application for **creating, editing and exploring high‑dimensional objects**.  
 It targets **enthusiasts, students, teachers and researchers** who want to visualise geometry in 3–20 dimensions, change projections (orthographic · stereographic · perspective · none) and watch objects rotate in real time.
 
@@ -41,9 +45,16 @@ Built with **C++17 · CMake · Qt 5/6 · OpenGL** and distributed for **Window
 ---
 
 ## Screenshots
-<!-- TODO: Add PNG/GIF files to /images and reference them here -->
-<!-- Example: -->
-<!-- <p align="center"><img src="images/teaser.gif" width="720"></p> -->
+<p align="center">
+  <figure style="display:inline-block; margin:8px">
+    <img src="preview images/permutohedron8.png" alt="Permutohedron 8‑D" width="360">
+    <figcaption style="text-align:center">Permutohedron&nbsp;(8&nbsp;D projection)</figcaption>
+  </figure>
+  <figure style="display:inline-block; margin:8px">
+    <img src="preview images/spheres.png" alt="Random spheres" width="360">
+    <figcaption style="text-align:center">10 000 coloured spheres</figcaption>
+  </figure>
+</p>
 
 ---
 
