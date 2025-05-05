@@ -141,6 +141,24 @@ jobs:
           archives: "qtbase qttools qtcharts qtwebengine"
           cache: true
 
+      - name: Install Qt host tools (x64) for ARM deploy
+        if: ${{ runner.os == 'Windows' && matrix.arch == 'win64_msvc2019_arm64' }}
+        id: qt_host
+        uses: jurplel/install-qt-action@v4
+        with:
+          dir: ${{ runner.workspace }}
+          version: 6.7.3
+          host: windows
+          target: desktop
+          arch: win64_msvc2019_64
+          archives: "qtbase qttools"
+          cache: true
+
+      - name: Export QT_HOST_DIR
+        if: ${{ runner.os == 'Windows' && matrix.arch == 'win64_msvc2019_arm64' }}
+        shell: bash
+        run: echo "QT_HOST_DIR=$QT_ROOT_DIR" >> "$GITHUB_ENV"
+
       # === Install Qt (Windows x86‑64 & arm64) ===
       - name: Install Qt (Windows x86‑64 / arm 64)
         if: runner.os == 'windows'
@@ -201,7 +219,7 @@ jobs:
         run: |
           APP="${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
           if [[ '${{ matrix.arch }}' == 'win64_msvc2019_arm64' ]]; then
-            windeployqt \
+            "$QT_HOST_DIR/bin/windeployqt.exe" \
               --qtpaths "$QT_ROOT_DIR/bin/qtpaths.bat" \
               "$APP"
           else
