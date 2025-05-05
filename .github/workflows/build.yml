@@ -82,7 +82,7 @@ jobs:
           # ===============================
           - os: windows-latest
             host: windows
-            arch: win64_msvc2019_64
+            arch: win64_msvc2019_arm64
             cmake_platform: ARM64
             cmake_extra: "-Thost=x64"
             build_dir: build
