@@ -2,7 +2,7 @@
 
 <!-- Badges --------------------------------------------------------------->
 [![CI](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/KarandaevRuslan/Multidimensional-geometrical-editor/actions/workflows/build.yml)
-[![License](https://img.shields.io/badge/license-TBD-blue.svg)](#license)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](#license)
 
 ## Overview
 **NDEditor** is a cross‑platform desktop application for **creating, editing and exploring high‑dimensional objects**.  
@@ -29,9 +29,9 @@ Built with **C++17 · CMake · Qt 5/6 · OpenGL** and distributed for **Window
 
 ## Table of Contents
 1. [Screenshots](#screenshots)  
-2. [Getting Started](#getting-started)  
-3. [Usage & Hotkeys](#usage--hotkeys)  
-4. [Build from Source](#build-from-source)  
+2. [Getting Started](#gettingstarted)  
+3. [Usage & Hotkeys](#usage-hotkeys)  
+4. [Build from Source](#buildfromsource)  
 5. [Configuration](#configuration)  
 6. [Roadmap](#roadmap)  
 7. [Contributing](#contributing)  
