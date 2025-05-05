@@ -332,13 +332,13 @@ void SceneRenderer::keyPressEvent(QKeyEvent* event)
                 .value("XDG_SESSION_TYPE")
                 .compare("wayland", Qt::CaseInsensitive) == 0;
 
-        const quint32 sc = ev->nativeScanCode();
+        const quint32 sc = event->nativeScanCode();
         if ( (isWayland && sc == 35) || (!isWayland && sc == 43) ) {
             toggleUi();
             return;
         }
 #elif defined(Q_OS_MAC)
-        if (ev->nativeScanCode() == 0x04) {
+        if (event->nativeScanCode() == 0x04) {
             toggleUi();
             return;
         }
