@@ -47,9 +47,9 @@ Built with **C++17 · CMake · Qt 5/6 · OpenGL** and distributed for **Window
 ---
 
 ## Screenshots
-| ![Permutohedron 8-D](preview%20images/permutohedron8.png) | ![10000 spheres](preview%20images/spheres.png) |
-|:--:|:--:|
-| *Permutohedron&nbsp;(8 D projection)* | *10 000 coloured spheres* |
+| <img src="preview%20images/permutohedron8.png" width="500"/> | <img src="preview%20images/spheres.png" width="500"/> |
+|:-------------------------------------------------------------:|:------------------------------------------------------:|
+| *Permutohedron (8D projection)*                               | *10 000 coloured spheres*                              |
 
 ---
 
