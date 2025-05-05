@@ -158,8 +158,7 @@ jobs:
         if: ${{ runner.os == 'Windows' && matrix.arch == 'win64_msvc2019_arm64' }}
         shell: bash
         run: |
-          HOST_WDEPLOY=$(command -v windeployqt.exe | tr -d '\r')
-          echo "HOST_WDEPLOYQT=$HOST_WDEPLOY" >> "$GITHUB_ENV"
+          echo "QT_HOST_WDEPLOY=$QT_HOST_PATH/bin/windeployqt.exe" >> "$GITHUB_ENV"
 
       # === Install Qt (Windows x86‑64 & arm64) ===
       - name: Install Qt (Windows x86‑64 / arm 64)
@@ -221,7 +220,7 @@ jobs:
         run: |
           APP="${{ matrix.build_dir }}/rel/Release/NDEditor.exe"
           if [[ '${{ matrix.arch }}' == 'win64_msvc2019_arm64' ]]; then
-             "$HOST_WDEPLOYQT" \
+             "$QT_HOST_WDEPLOY" \
               --qtpaths "$QT_ROOT_DIR/bin/qtpaths.bat" \
               "$APP"
           else
