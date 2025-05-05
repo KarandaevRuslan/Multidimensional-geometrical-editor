@@ -167,7 +167,6 @@ For bug reports or feature requests open a GitHub Issue or write an email.
 
 ## License
 This project is licensed under the **MIT License** — see [`LICENSE`](LICENSE) for details.  
-MIT is short, permissive and widely understood, making it easy for anyone to use the code (including in commercial or academic projects) while still requiring attribution.
 
 ---
 
