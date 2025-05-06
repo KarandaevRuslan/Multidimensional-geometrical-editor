@@ -13,10 +13,12 @@ if(QT_VERSION_MAJOR GREATER_EQUAL 6)
     list(APPEND QT_MODULES OpenGLWidgets)
 endif()
 
-if (QT_VERSION_MAJOR EQUAL 6)
-    find_package(Qt6 REQUIRED COMPONENTS ${QT_MODULES})
-else()
+if(QT_VERSION_MAJOR GREATER_EQUAL 6)
     find_package(Qt5 REQUIRED COMPONENTS ${QT_MODULES})
+    set(_QT_PKG Qt5)
+else()
+    find_package(Qt6 REQUIRED COMPONENTS ${QT_MODULES})
+    set(_QT_PKG Qt6)
 endif()
 
 set(TS_FILES
@@ -106,7 +108,7 @@ set_source_files_properties(
 )
 set(MACOSX_ICON_FILE "images/app_icon.icns")
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+if(_QT_PKG STREQUAL "Qt6")
     qt_add_executable(NDEditor
         WIN32
         MACOSX_BUNDLE
@@ -131,12 +133,12 @@ else()
 endif()
 
 target_link_libraries(NDEditor PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::OpenGL
-    Qt${QT_VERSION_MAJOR}::UiTools
+    ${_QT_PKG}::Widgets
+    ${_QT_PKG}::OpenGL
+    ${_QT_PKG}::UiTools
 )
 
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+if(_QT_PKG STREQUAL "Qt6")
     target_link_libraries(NDEditor PRIVATE Qt6::OpenGLWidgets)
 endif()
 
@@ -175,7 +177,7 @@ install(TARGETS NDEditor
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-if(QT_VERSION_MAJOR EQUAL 6)
+if(_QT_PKG STREQUAL "Qt6")
     qt_finalize_executable(NDEditor)
 endif()
 
@@ -214,7 +216,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug"
   )
   target_link_libraries(Test PRIVATE
     GTest::gtest_main
-    Qt${QT_VERSION_MAJOR}::Widgets
+    ${_QT_PKG}::Widgets
   )
 
   include(GoogleTest)
