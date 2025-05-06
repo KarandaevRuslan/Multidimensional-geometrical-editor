@@ -238,13 +238,13 @@ jobs:
               -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_extra }}
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
             if [[ "${{ matrix.host }}" == "linux" ]]; then
-              cmake -S . -B "$BUILD_DIR" \
+              cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH=/usr/lib/qt5 \
                 ${{ matrix.cmake_extra }}
             else
-              cmake -S . -B "$BUILD_DIR" \
+              cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
