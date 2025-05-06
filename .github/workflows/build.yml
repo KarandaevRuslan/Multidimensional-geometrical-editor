@@ -202,7 +202,8 @@ jobs:
         if: ${{ matrix.host == 'android' }}
         uses: android-actions/setup-android@v3
         with:
-          ndk-version: 26.1.10909125
+          cmdline-tools-version: "9.0.2"
+          accept-android-sdk-licenses: true
           packages: "platform-tools build-tools;34.0.0 platforms;android-34"
 
       - name: Install Qt (Android)
