@@ -13,8 +13,11 @@ if(QT_VERSION_MAJOR GREATER_EQUAL 6)
     list(APPEND QT_MODULES OpenGLWidgets)
 endif()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS ${QT_MODULES})
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${QT_MODULES})
+if (QT_MAJOR EQUAL 6)
+    find_package(Qt6 REQUIRED COMPONENTS ${QT_MODULES})
+else()
+    find_package(Qt5 REQUIRED COMPONENTS ${QT_MODULES})
+endif()
 
 set(TS_FILES
 #    NDEditor_en_US.ts
