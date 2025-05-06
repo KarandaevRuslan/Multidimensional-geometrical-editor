@@ -119,6 +119,8 @@ jobs:
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
               -DANDROID_ABI=arm64-v8a
               -DANDROID_PLATFORM=android-24
+              -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/Qt/6.7.3/android_arm64_v8a
+              -DCMAKE_FIND_ROOT_PATH=${{ runner.workspace }}/Qt/6.7.3/android_arm64_v8a
             build_dir: build
             artifact_name: NDEditor-android-arm64
             dist_path: build/rel/Android/NDEditor.apk
@@ -258,7 +260,6 @@ jobs:
               cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
                 ${{ matrix.cmake_extra }}
             fi
           else
