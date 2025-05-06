@@ -224,7 +224,6 @@ jobs:
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME"       >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_HOME"   >> "$GITHUB_ENV"
           echo "CMAKE_PREFIX_PATH=$QT_ROOT_DIR"       >> "$GITHUB_ENV"
-          echo "Qt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6"   >> "$GITHUB_ENV"
 
       # ---------------------------------------------------------------------
       # 1) Release build
@@ -246,12 +245,7 @@ jobs:
             else
               cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
-                   -DCMAKE_BUILD_TYPE=Release \
-                   -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
-                   -DANDROID_ABI=arm64-v8a \
-                   -DANDROID_PLATFORM=android-24 \
-                   -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}" \
-                   -DQt6_DIR="${Qt6_DIR}" \
+                -DCMAKE_BUILD_TYPE=Release \
                 ${{ matrix.cmake_extra }}
             fi
           else
