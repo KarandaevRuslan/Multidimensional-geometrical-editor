@@ -108,6 +108,21 @@ jobs:
             artifact_name: NDEditor-macos-arm64
             dist_path: build/rel/NDEditor.app.tar.gz
 
+          # ===============================
+          # 7) android (ARM64)
+          # ===============================
+          - os: ubuntu-22.04          
+            host: android             
+            arch: android_arm64_v8a
+            cmake_extra: >
+              -DQT_ANDROID_BUILD=ON
+              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
+              -DANDROID_ABI=arm64-v8a
+              -DANDROID_PLATFORM=android-24
+            build_dir: build
+            artifact_name: NDEditor-android-arm64
+            dist_path: build/rel/Android/NDEditor.apk
+
     steps:
       - uses: actions/checkout@v4
         name: Checkout source
@@ -175,6 +190,42 @@ jobs:
         run: |
           brew update
           brew install ninja
+
+      - name: Set up Java (JDK 17)
+        if: ${{ matrix.host == 'android' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install Android SDK + NDK r26
+        if: ${{ matrix.host == 'android' }}
+        uses: android-actions/setup-android@v3
+        with:
+          ndk-version: 26.1.10909125
+          packages: |
+            build-tools;34.0.0
+            platforms;android-34
+            platform-tools
+
+      - name: Install Qt (Android)
+        if: ${{ matrix.host == 'android' }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          dir: ${{ runner.workspace }}
+          version: 6.7.3
+          host: linux
+          target: android
+          arch: android_arm64_v8a
+          archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
+          cache: true
+
+      - name: Export Android env vars
+        if: ${{ matrix.host == 'android' }}
+        shell: bash
+        run: |
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME"       >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_HOME"   >> "$GITHUB_ENV"
 
       # ---------------------------------------------------------------------
       # 1) Release build
@@ -280,6 +331,28 @@ jobs:
           if [[ -n "$FIRST_APPIMG" ]]; then
               mv "$FIRST_APPIMG" build/rel/NDEditor.AppImage
           fi
+
+      - name: Package APK with androiddeployqt
+        if: ${{ matrix.host == 'android' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_REL=${{ matrix.build_dir }}/rel
+          androiddeployqt \
+            --input  "$BUILD_REL/qt/android-deployment-settings.json" \
+            --output "$BUILD_REL/Android" \
+            --release \
+            --gradle \
+            --apk
+
+      - name: Rename final APK
+        if: ${{ matrix.host == 'android' }}
+        shell: bash
+        run: |
+          BUILD_REL=${{ matrix.build_dir }}/rel
+          APK=$(find "$BUILD_REL/Android" -name "*-release.apk" | head -n1)
+          mkdir -p "$BUILD_REL/Android"
+          mv "$APK" "${{ matrix.dist_path }}"
 
       # ---------------------------------------------------------------------
       # 3) Upload artefacts
