@@ -248,6 +248,7 @@ jobs:
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
+                -DQt6_DIR="$Qt6_DIR" \
                 ${{ matrix.cmake_extra }}
             fi
           else
