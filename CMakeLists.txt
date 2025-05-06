@@ -13,7 +13,14 @@ if(QT_VERSION_MAJOR GREATER_EQUAL 6)
     list(APPEND QT_MODULES OpenGLWidgets)
 endif()
 
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS ${QT_MODULES})
+find_package(Qt6 QUIET COMPONENTS Core)
+
+if (Qt6_FOUND)
+    set(QT_VERSION_MAJOR 6)
+else()
+    set(QT_VERSION_MAJOR 5)
+endif()
+
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${QT_MODULES})
 
 set(TS_FILES
