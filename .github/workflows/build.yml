@@ -119,6 +119,11 @@ jobs:
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
               -DANDROID_ABI=arm64-v8a
               -DANDROID_PLATFORM=android-24
+              -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a
+              -DCMAKE_FIND_ROOT_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a
+              -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
+              -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
+              -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
             build_dir: build
             artifact_name: NDEditor-android-arm64
             dist_path: build/rel/Android/NDEditor.apk
@@ -223,8 +228,6 @@ jobs:
         run: |
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME"       >> "$GITHUB_ENV"
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_HOME"   >> "$GITHUB_ENV"
-          echo "CMAKE_PREFIX_PATH=$QT_ROOT_DIR" >> $GITHUB_ENV
-          echo "CMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR" >> $GITHUB_ENV
 
       - name: Check Qt CMake config files
         if: ${{ matrix.host == 'android' }}
