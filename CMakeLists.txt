@@ -17,8 +17,11 @@ find_package(Qt6 QUIET COMPONENTS Core)
 
 if (Qt6_FOUND)
     set(QT_VERSION_MAJOR 6)
+    set(QT_VERSION ${Qt6_VERSION})
 else()
+    find_package(Qt5 REQUIRED COMPONENTS Core)
     set(QT_VERSION_MAJOR 5)
+    set(QT_VERSION ${Qt5_VERSION})
 endif()
 
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${QT_MODULES})
@@ -144,7 +147,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     target_link_libraries(NDEditor PRIVATE Qt6::OpenGLWidgets)
 endif()
 
-if(${QT_VERSION} VERSION_LESS 6.1.0)
+if(QT_VERSION AND QT_VERSION VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.karandaev.NDEditor)
 endif()
 
