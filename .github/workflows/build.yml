@@ -129,7 +129,7 @@ jobs:
 
       # === Install Qt (Linux) ===
       - name: Install Qt (Linux)
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && matrix.host == 'linux'
         run: |
           sudo apt-get update
           sudo add-apt-repository universe
@@ -203,10 +203,7 @@ jobs:
         uses: android-actions/setup-android@v3
         with:
           ndk-version: 26.1.10909125
-          packages: |
-            build-tools;34.0.0
-            platforms;android-34
-            platform-tools
+          packages: "platform-tools build-tools;34.0.0 platforms;android-34"
 
       - name: Install Qt (Android)
         if: ${{ matrix.host == 'android' }}
