@@ -258,7 +258,7 @@ jobs:
               cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR/lib/cmake/Qt6" \
+                -DCMAKE_PREFIX_PATH="$QT_ROOT_DIR" \
                 ${{ matrix.cmake_extra }}
             fi
           else
