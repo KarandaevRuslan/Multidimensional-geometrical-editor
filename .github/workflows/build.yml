@@ -230,8 +230,8 @@ jobs:
         if: ${{ matrix.host == 'android' }}
         run: |
           pip install aqtinstall==3.2.*
-          python3 -m aqt list-qt linux desktop 6.7.3 --modules gcc_64
-          python3 -m aqt list-qt linux android 6.7.3 --modules android_arm64_v8a
+          python3 -m aqt list-qt linux desktop --modules 6.7.3 gcc_64
+          python3 -m aqt list-qt linux android --modules 6.7.3 android_arm64_v8a
 
       - name: Install Qt host tools (Linux x64)
         if: ${{ matrix.host == 'android' }}
