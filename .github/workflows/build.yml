@@ -284,7 +284,7 @@ jobs:
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
-                -DCMAKE_PREFIX_PATH=/usr/lib/qt6 \
+                -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/qt6;$QT_ROOT_DIR" \
                 -DCMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR \
                 -DCMAKE_ANDROID_SDK=$ANDROID_SDK_ROOT \
                 -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT \
