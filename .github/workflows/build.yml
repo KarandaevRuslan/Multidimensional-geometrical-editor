@@ -241,6 +241,14 @@ jobs:
           \) || echo "No matching config files found."
           echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
 
+      - name: Debug Android paths
+        if: ${{ matrix.host == 'android' }}
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
+          ls -la $ANDROID_HOME/build-tools
+
       # ---------------------------------------------------------------------
       # 1) Release build
       # ---------------------------------------------------------------------
@@ -265,6 +273,10 @@ jobs:
                 -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
                 -DCMAKE_PREFIX_PATH=$QT_ROOT_DIR \
                 -DCMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR \
+                -DCMAKE_ANDROID_SDK=$ANDROID_SDK_ROOT \
+                -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT \
+                -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
+                -DANDROID_NDK_ROOT=$ANDROID_NDK_ROOT \
                 ${{ matrix.cmake_extra }}
             fi
           else
