@@ -222,15 +222,20 @@ jobs:
 
       - name: Install Qt host tools (Linux x64)
         if: ${{ matrix.host == 'android' }}
-        uses: jurplel/install-qt-action@v4
-        with:
-          dir: ${{ runner.workspace }}
-          version: 6.7.3
-          host: linux
-          target: desktop
-          arch: gcc_64
-          archives: "qtbase qttools qtshadertools"
-          cache: true
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            qt6-base-dev-tools \
+            qt6-tools-dev-tools \
+            qt6-declarative-dev \
+            qml6-module-qtquick-controls2 \
+            qml6-module-qtwebengine \
+            libxcb1 libxkbcommon0 libxcb-xinerama0 \
+            build-essential ninja-build
+          # убедимся, что uic, moc и rcc будут в PATH
+          echo "/usr/lib/x86_64-linux-gnu/qt6/bin" | sudo tee /etc/ld.so.conf.d/qt6.conf
+          sudo ldconfig
+          export PATH="/usr/lib/x86_64-linux-gnu/qt6/bin:$PATH"
 
       - name: Export Android env vars
         if: ${{ matrix.host == 'android' }}
@@ -283,7 +288,7 @@ jobs:
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
-                -DCMAKE_PREFIX_PATH=$QT_ROOT_DIR \
+                -DCMAKE_PREFIX_PATH=/usr/lib/qt6 \
                 -DCMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR \
                 -DCMAKE_ANDROID_SDK=$ANDROID_SDK_ROOT \
                 -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT \
