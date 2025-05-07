@@ -219,6 +219,10 @@ jobs:
           arch: android_arm64_v8a
           archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
           cache: true
+          
+      - name: List available Qt modules
+        if: ${{ matrix.host == 'android' }}
+        run: python3 -m aqt list-qt linux desktop 6.7.3 --modules
 
       - name: Install Qt host tools (Linux x64)
         if: ${{ matrix.host == 'android' }}
