@@ -219,29 +219,16 @@ jobs:
           arch: android_arm64_v8a
           archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
           cache: true
-          
-      - name: Install aqtinstall (tools only)
-        if: ${{ matrix.host == 'android' }}
-        uses: jurplel/install-qt-action@v4
-        with:
-          only-tools: true
-    
-      - name: List available Qt modules (desktop)
-        if: ${{ matrix.host == 'android' }}
-        run: |
-          pip install aqtinstall==3.2.*
-          python3 -m aqt list-qt linux desktop --modules 6.7.3 gcc_64
-          python3 -m aqt list-qt linux android --modules 6.7.3 android_arm64_v8a
 
       - name: Install Qt host tools (Linux x64)
         if: ${{ matrix.host == 'android' }}
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: 6.7.3
-          host: linux
-          target: desktop
-          arch: gcc_64
-          archives: "qt6 qt6-tools qt6-charts qt6-webengine"
+        run: |
+          sudo apt update
+          sudo apt install -y \
+              qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools \
+              qt6-declarative-dev qt6-quickcontrols2-dev qt6-webengine-dev \
+              libgl1-mesa-dev libglu1-mesa-dev libopengl-dev \
+              libfuse2 ninja-build libgtest-dev build-essential
 
       - name: Export Android env vars
         if: ${{ matrix.host == 'android' }}
