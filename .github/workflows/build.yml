@@ -227,9 +227,11 @@ jobs:
           only-tools: true
     
       - name: List available Qt modules (desktop)
+        if: ${{ matrix.host == 'android' }}
         run: |
           pip install aqtinstall==3.2.*
-          python3 -m aqt list-qt linux desktop 6.7.3 --modules
+          python3 -m aqt list-qt linux desktop 6.7.3 --modules gcc_64
+          python3 -m aqt list-qt linux android 6.7.3 --modules android_arm64_v8a
 
       - name: Install Qt host tools (Linux x64)
         if: ${{ matrix.host == 'android' }}
