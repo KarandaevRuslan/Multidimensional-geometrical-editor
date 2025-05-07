@@ -262,6 +262,22 @@ jobs:
           echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
           ls -la $ANDROID_HOME/build-tools
 
+      - name: Debug Qt6 host tools on runner
+        if: ${{ matrix.host == 'android' }}
+        run: |
+          echo "=== Finding host Qt tools ==="
+          which moc6 || which moc || echo "moc not in PATH"
+          which uic6 || which uic || echo "uic not in PATH"
+          which rcc6 || which rcc || echo "rcc not in PATH"
+          echo
+          echo "=== Listing candidate dirs ==="
+          ls -l /usr/bin/moc6 /usr/lib/x86_64-linux-gnu/qt6/bin/moc6 2>/dev/null || true
+          ls -l /usr/bin/uic6 /usr/lib/x86_64-linux-gnu/qt6/bin/uic6 2>/dev/null || true
+          ls -l /usr/bin/rcc6 /usr/lib/x86_64-linux-gnu/qt6/bin/rcc6 2>/dev/null || true
+          echo
+          echo "=== ldd on moc6 ==="
+          if [ -x "$(which moc6)" ]; then ldd "$(which moc6)"; fi
+
       # ---------------------------------------------------------------------
       # 1) Release build
       # ---------------------------------------------------------------------
