@@ -220,9 +220,16 @@ jobs:
           archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
           cache: true
           
-      - name: List available Qt modules
+      - name: Install aqtinstall (tools only)
         if: ${{ matrix.host == 'android' }}
-        run: python3 -m aqt list-qt linux desktop 6.7.3 --modules
+        uses: jurplel/install-qt-action@v4
+        with:
+          only-tools: true
+    
+      - name: List available Qt modules (desktop)
+        run: |
+          pip install aqtinstall==3.2.*
+          python3 -m aqt list-qt linux desktop 6.7.3 --modules
 
       - name: Install Qt host tools (Linux x64)
         if: ${{ matrix.host == 'android' }}
