@@ -228,7 +228,7 @@ jobs:
           host: linux
           target: desktop
           arch: gcc_64
-          archives: "qtbase qttools"
+          archives: "qt6 qt6-tools qt6-charts qt6-webengine"
 
       - name: Export Android env vars
         if: ${{ matrix.host == 'android' }}
