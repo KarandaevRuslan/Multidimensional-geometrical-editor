@@ -7,23 +7,27 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(QT_MODULES Widgets UiTools OpenGL)
+message(STATUS "===== CMake Debug Info =====")
+message(STATUS "QT = ${QT}")
+message(STATUS "QT_VERSION = ${QT_VERSION}")
+message(STATUS "QT_VERSION_MAJOR = ${QT_VERSION_MAJOR}")
+message(STATUS "Qt6_VERSION = ${Qt6_VERSION}")
+message(STATUS "Qt5_VERSION = ${Qt5_VERSION}")
+message(STATUS "Qt6_FOUND = ${Qt6_FOUND}")
+message(STATUS "Qt5_FOUND = ${Qt5_FOUND}")
+message(STATUS "CMAKE_PREFIX_PATH = ${CMAKE_PREFIX_PATH}")
+message(STATUS "CMAKE_FIND_ROOT_PATH = ${CMAKE_FIND_ROOT_PATH}")
+message(STATUS "Qt6_DIR = ${Qt6_DIR}")
+message(STATUS "Qt5_DIR = ${Qt5_DIR}")
+message(STATUS "CMAKE_TOOLCHAIN_FILE = ${CMAKE_TOOLCHAIN_FILE}")
+message(STATUS "=============================")
 
+set(QT_MODULES Widgets UiTools OpenGL)
 if(QT_VERSION_MAJOR GREATER_EQUAL 6)
     list(APPEND QT_MODULES OpenGLWidgets)
 endif()
 
-find_package(Qt6 QUIET COMPONENTS Core)
-
-if (Qt6_FOUND)
-    set(QT_VERSION_MAJOR 6)
-    set(QT_VERSION ${Qt6_VERSION})
-else()
-    find_package(Qt5 REQUIRED COMPONENTS Core)
-    set(QT_VERSION_MAJOR 5)
-    set(QT_VERSION ${Qt5_VERSION})
-endif()
-
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS ${QT_MODULES})
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS ${QT_MODULES})
 
 set(TS_FILES
@@ -147,7 +151,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     target_link_libraries(NDEditor PRIVATE Qt6::OpenGLWidgets)
 endif()
 
-if(QT_VERSION AND QT_VERSION VERSION_LESS 6.1.0)
+if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.karandaev.NDEditor)
 endif()
 
