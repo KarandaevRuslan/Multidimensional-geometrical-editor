@@ -220,6 +220,16 @@ jobs:
           archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
           cache: true
 
+      - name: Install Qt host tools (Linux x64)
+        if: ${{ matrix.host == 'android' }}
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.7.3
+          host: linux
+          target: desktop
+          arch: gcc_64
+          archives: "qtbase qttools"
+
       - name: Export Android env vars
         if: ${{ matrix.host == 'android' }}
         shell: bash
