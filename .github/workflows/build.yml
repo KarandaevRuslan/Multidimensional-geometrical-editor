@@ -111,20 +111,20 @@ jobs:
           # ===============================
           # 7) android (ARM64)
           # ===============================
-          - os: ubuntu-22.04          
-            host: android             
-            arch: android_arm64_v8a
-            cmake_extra: >
-              -DQT_ANDROID_BUILD=ON
-              -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
-              -DANDROID_ABI=arm64-v8a
-              -DANDROID_PLATFORM=android-24
-              -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
-              -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
-              -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
-            build_dir: build
-            artifact_name: NDEditor-android-arm64
-            dist_path: build/rel/Android/NDEditor.apk
+          # - os: ubuntu-22.04          
+          #   host: android             
+          #   arch: android_arm64_v8a
+          #   cmake_extra: >
+          #     -DQT_ANDROID_BUILD=ON
+          #     -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
+          #     -DANDROID_ABI=arm64-v8a
+          #     -DANDROID_PLATFORM=android-24
+          #     -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
+          #     -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
+          #     -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
+          #   build_dir: build
+          #   artifact_name: NDEditor-android-arm64
+          #   dist_path: build/rel/Android/NDEditor.apk
 
     steps:
       - uses: actions/checkout@v4
@@ -194,89 +194,51 @@ jobs:
           brew update
           brew install ninja
 
-      - name: Set up Java (JDK 17)
-        if: ${{ matrix.host == 'android' }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
+      # - name: Set up Java (JDK 17)
+      #   if: ${{ matrix.host == 'android' }}
+      #   uses: actions/setup-java@v4
+      #   with:
+      #     distribution: temurin
+      #     java-version: 17
 
-      - name: Install Android SDK + NDK r26
-        if: ${{ matrix.host == 'android' }}
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
-          packages: "platform-tools build-tools;34.0.0 platforms;android-34"
+      # - name: Install Android SDK + NDK r26
+      #   if: ${{ matrix.host == 'android' }}
+      #   uses: android-actions/setup-android@v3
+      #   with:
+      #     accept-android-sdk-licenses: true
+      #     packages: "platform-tools build-tools;34.0.0 platforms;android-34"
 
-      - name: Install Qt (Android)
-        if: ${{ matrix.host == 'android' }}
-        uses: jurplel/install-qt-action@v4
-        with:
-          dir: ${{ runner.workspace }}
-          version: 6.7.3
-          host: linux
-          target: android
-          arch: android_arm64_v8a
-          archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
-          cache: true
+      # - name: Install Qt (Android)
+      #   if: ${{ matrix.host == 'android' }}
+      #   uses: jurplel/install-qt-action@v4
+      #   with:
+      #     dir: ${{ runner.workspace }}
+      #     version: 6.7.3
+      #     host: linux
+      #     target: android
+      #     arch: android_arm64_v8a
+      #     archives: "qtbase qttools qtcharts qtdeclarative qtquickcontrols2 qtwebengine"
+      #     cache: true
 
-      - name: Install Qt host tools (Linux x64)
-        if: ${{ matrix.host == 'android' }}
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            qt6-base-dev-tools \
-            qt6-tools-dev-tools \
-            libxcb1 libxkbcommon0 libxcb-xinerama0 \
-            build-essential ninja-build
-          echo "/usr/lib/x86_64-linux-gnu/qt6/bin" | sudo tee /etc/ld.so.conf.d/qt6.conf
-          sudo ldconfig
-          export PATH="/usr/lib/x86_64-linux-gnu/qt6/bin:$PATH"
+      # - name: Install Qt host tools (Linux x64)
+      #   if: ${{ matrix.host == 'android' }}
+      #   run: |
+      #     sudo apt-get update
+      #     sudo apt-get install -y \
+      #       qt6-base-dev-tools \
+      #       qt6-tools-dev-tools \
+      #       libxcb1 libxkbcommon0 libxcb-xinerama0 \
+      #       build-essential ninja-build
+      #     echo "/usr/lib/x86_64-linux-gnu/qt6/bin" | sudo tee /etc/ld.so.conf.d/qt6.conf
+      #     sudo ldconfig
+      #     export PATH="/usr/lib/x86_64-linux-gnu/qt6/bin:$PATH"
 
-      - name: Export Android env vars
-        if: ${{ matrix.host == 'android' }}
-        shell: bash
-        run: |
-          echo "ANDROID_SDK_ROOT=$ANDROID_HOME"       >> "$GITHUB_ENV"
-          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_HOME"   >> "$GITHUB_ENV"
-
-      - name: Check Qt CMake config files
-        if: ${{ matrix.host == 'android' }}
-        shell: bash
-        run: |
-          echo "QT_ROOT_DIR: $QT_ROOT_DIR"
-          echo "Looking for Qt CMake config files under $QT_ROOT_DIR/lib/cmake"
-          find "$QT_ROOT_DIR/lib/cmake" -type f \( \
-            -iname "Qt6Config.cmake" -o \
-            -iname "qt6-config.cmake" -o \
-            -iname "Qt5Config.cmake" -o \
-            -iname "qt5-config.cmake" \
-          \) || echo "No matching config files found."
-          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
-
-      - name: Debug Android paths
-        if: ${{ matrix.host == 'android' }}
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT"
-          ls -la $ANDROID_HOME/build-tools
-
-      - name: Debug Qt6 host tools on runner
-        if: ${{ matrix.host == 'android' }}
-        run: |
-          echo "=== Finding host Qt tools ==="
-          which moc6 || which moc || echo "moc not in PATH"
-          which uic6 || which uic || echo "uic not in PATH"
-          which rcc6 || which rcc || echo "rcc not in PATH"
-          echo
-          echo "=== Listing candidate dirs ==="
-          ls -l /usr/bin/moc6 /usr/lib/x86_64-linux-gnu/qt6/bin/moc6 2>/dev/null || true
-          ls -l /usr/bin/uic6 /usr/lib/x86_64-linux-gnu/qt6/bin/uic6 2>/dev/null || true
-          ls -l /usr/bin/rcc6 /usr/lib/x86_64-linux-gnu/qt6/bin/rcc6 2>/dev/null || true
-          echo
-          echo "=== ldd on moc6 ==="
-          if [ -x "$(which moc6)" ]; then ldd "$(which moc6)"; fi
+      # - name: Export Android env vars
+      #   if: ${{ matrix.host == 'android' }}
+      #   shell: bash
+      #   run: |
+      #     echo "ANDROID_SDK_ROOT=$ANDROID_HOME"       >> "$GITHUB_ENV"
+      #     echo "ANDROID_NDK_ROOT=$ANDROID_NDK_HOME"   >> "$GITHUB_ENV"
 
       # ---------------------------------------------------------------------
       # 1) Release build
@@ -289,28 +251,28 @@ jobs:
               -G "Visual Studio 17 2022" -A ${{ matrix.cmake_platform }} \
               -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_extra }}
           elif [[ "$RUNNER_OS" == "Linux" ]]; then
-            if [[ "${{ matrix.host }}" == "linux" ]]; then
+            # if [[ "${{ matrix.host }}" == "linux" ]]; then
               cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH=/usr/lib/qt5 \
                 ${{ matrix.cmake_extra }}
-            else
-              cmake -S . -B "${{ matrix.build_dir }}/rel" \
-                -G Ninja \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
-                -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/qt6;$QT_ROOT_DIR" \
-                -DCMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR \
-                -DCMAKE_ANDROID_SDK=$ANDROID_SDK_ROOT \
-                -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT \
-                -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
-                -DANDROID_NDK_ROOT=$ANDROID_NDK_ROOT \
-                -DCMAKE_AUTOUIC_EXECUTABLE=/usr/bin/uic \
-                -DCMAKE_AUTOMOC_EXECUTABLE=/usr/bin/moc \
-                -DCMAKE_AUTORCC_EXECUTABLE=/usr/bin/rcc \
-                ${{ matrix.cmake_extra }}
-            fi
+            # else
+            #   cmake -S . -B "${{ matrix.build_dir }}/rel" \
+            #     -G Ninja \
+            #     -DCMAKE_BUILD_TYPE=Release \
+            #     -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
+            #     -DCMAKE_PREFIX_PATH="/usr/lib/x86_64-linux-gnu/qt6;$QT_ROOT_DIR" \
+            #     -DCMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR \
+            #     -DCMAKE_ANDROID_SDK=$ANDROID_SDK_ROOT \
+            #     -DCMAKE_ANDROID_NDK=$ANDROID_NDK_ROOT \
+            #     -DANDROID_SDK_ROOT=$ANDROID_SDK_ROOT \
+            #     -DANDROID_NDK_ROOT=$ANDROID_NDK_ROOT \
+            #     -DCMAKE_AUTOUIC_EXECUTABLE=/usr/bin/uic \
+            #     -DCMAKE_AUTOMOC_EXECUTABLE=/usr/bin/moc \
+            #     -DCMAKE_AUTORCC_EXECUTABLE=/usr/bin/rcc \
+            #     ${{ matrix.cmake_extra }}
+            # fi
           else
             cmake -S . -B "${{ matrix.build_dir }}/rel" \
               -G Ninja \
@@ -400,27 +362,27 @@ jobs:
               mv "$FIRST_APPIMG" build/rel/NDEditor.AppImage
           fi
 
-      - name: Package APK with androiddeployqt
-        if: ${{ matrix.host == 'android' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          BUILD_REL=${{ matrix.build_dir }}/rel
-          androiddeployqt \
-            --input  "$BUILD_REL/qt/android-deployment-settings.json" \
-            --output "$BUILD_REL/Android" \
-            --release \
-            --gradle \
-            --apk
+      # - name: Package APK with androiddeployqt
+      #   if: ${{ matrix.host == 'android' }}
+      #   shell: bash
+      #   run: |
+      #     set -euo pipefail
+      #     BUILD_REL=${{ matrix.build_dir }}/rel
+      #     androiddeployqt \
+      #       --input  "$BUILD_REL/qt/android-deployment-settings.json" \
+      #       --output "$BUILD_REL/Android" \
+      #       --release \
+      #       --gradle \
+      #       --apk
 
-      - name: Rename final APK
-        if: ${{ matrix.host == 'android' }}
-        shell: bash
-        run: |
-          BUILD_REL=${{ matrix.build_dir }}/rel
-          APK=$(find "$BUILD_REL/Android" -name "*-release.apk" | head -n1)
-          mkdir -p "$BUILD_REL/Android"
-          mv "$APK" "${{ matrix.dist_path }}"
+      # - name: Rename final APK
+      #   if: ${{ matrix.host == 'android' }}
+      #   shell: bash
+      #   run: |
+      #     BUILD_REL=${{ matrix.build_dir }}/rel
+      #     APK=$(find "$BUILD_REL/Android" -name "*-release.apk" | head -n1)
+      #     mkdir -p "$BUILD_REL/Android"
+      #     mv "$APK" "${{ matrix.dist_path }}"
 
       # ---------------------------------------------------------------------
       # 3) Upload artefacts
