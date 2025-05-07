@@ -227,12 +227,8 @@ jobs:
           sudo apt-get install -y \
             qt6-base-dev-tools \
             qt6-tools-dev-tools \
-            qt6-declarative-dev \
-            qml6-module-qtquick-controls2 \
-            qml6-module-qtwebengine \
             libxcb1 libxkbcommon0 libxcb-xinerama0 \
             build-essential ninja-build
-          # убедимся, что uic, moc и rcc будут в PATH
           echo "/usr/lib/x86_64-linux-gnu/qt6/bin" | sudo tee /etc/ld.so.conf.d/qt6.conf
           sudo ldconfig
           export PATH="/usr/lib/x86_64-linux-gnu/qt6/bin:$PATH"
