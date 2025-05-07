@@ -121,6 +121,7 @@ jobs:
               -DANDROID_PLATFORM=android-24
               -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a
               -DCMAKE_FIND_ROOT_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a
+              -DQt6_DIR=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a/lib/cmake/Qt6
               -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
               -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
               -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
