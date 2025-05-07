@@ -242,6 +242,7 @@ jobs:
             -iname "Qt5Config.cmake" -o \
             -iname "qt5-config.cmake" \
           \) || echo "No matching config files found."
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
 
       # ---------------------------------------------------------------------
       # 1) Release build
