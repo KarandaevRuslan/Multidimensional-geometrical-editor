@@ -119,9 +119,6 @@ jobs:
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
               -DANDROID_ABI=arm64-v8a
               -DANDROID_PLATFORM=android-24
-              -DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a
-              -DCMAKE_FIND_ROOT_PATH=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a
-              -DQt6_DIR=$GITHUB_WORKSPACE/Qt/6.7.3/android_arm64_v8a/lib/cmake/Qt6
               -DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=ONLY
               -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY
               -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=ONLY
@@ -265,6 +262,9 @@ jobs:
               cmake -S . -B "${{ matrix.build_dir }}/rel" \
                 -G Ninja \
                 -DCMAKE_BUILD_TYPE=Release \
+                -DQt6_DIR=$QT_ROOT_DIR/lib/cmake/Qt6 \
+                -DCMAKE_PREFIX_PATH=$QT_ROOT_DIR \
+                -DCMAKE_FIND_ROOT_PATH=$QT_ROOT_DIR \
                 ${{ matrix.cmake_extra }}
             fi
           else
